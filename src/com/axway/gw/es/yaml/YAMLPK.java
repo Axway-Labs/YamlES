@@ -1,7 +1,5 @@
 package com.axway.gw.es.yaml;
 
-import java.net.URL;
-
 public class YAMLPK implements com.vordel.es.ESPK {
 
 	private final String location;
