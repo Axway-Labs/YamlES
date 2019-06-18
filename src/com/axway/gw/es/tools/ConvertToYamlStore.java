@@ -42,7 +42,7 @@ public class ConvertToYamlStore {
 //	private static final String WHERE_TO_WRITE_ENTITIES = "C:\\vordel\\es\\root\\";
 
 	private static String ES_TO_LOAD;
-	private static String WHERE_TO_WRITE;
+	private static String WHERE_TO_WRITE_TYPES;
 	private static String WHERE_TO_WRITE_ENTITIES;
 
 	public static void main(String[] args) {
@@ -51,12 +51,12 @@ public class ConvertToYamlStore {
 			System.exit(1);
 		} else {
 			ES_TO_LOAD = args[0];
-			WHERE_TO_WRITE = args[1];
+			WHERE_TO_WRITE_TYPES = args[1];
 			WHERE_TO_WRITE_ENTITIES = args[2];
 		}
 		try {
 			ConvertToYamlStore converter = new ConvertToYamlStore(ES_TO_LOAD, new Properties());
-			converter.dumpTypesAsYaml(WHERE_TO_WRITE);
+			converter.dumpTypesAsYaml(WHERE_TO_WRITE_TYPES);
 			converter.dumpEntitesAsYaml(WHERE_TO_WRITE_ENTITIES);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
