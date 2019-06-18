@@ -50,7 +50,7 @@ public class ConvertToYamlStore {
 			LOGGER.info("You must provide where the existing fed file, where to write types and entities!!!!");
 			System.exit(1);
 		} else {
-			ES_TO_LOAD = args[0];
+			ES_TO_LOAD = "federated:file:/" + args[0];
 			WHERE_TO_WRITE = args[1];
 			WHERE_TO_WRITE_ENTITIES = args[2];
 		}
