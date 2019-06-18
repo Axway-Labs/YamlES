@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import org.slf4j.LoggerFactory;
-
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreException;
 import com.vordel.es.EntityStoreFactory;

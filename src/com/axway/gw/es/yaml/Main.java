@@ -2,8 +2,6 @@ package com.axway.gw.es.yaml;
 
 import java.util.Properties;
 
-import com.vordel.es.EntityStoreFactory;
-
 public class Main {
 	
 	private static final String WHERE_TO_LOAD = "yaml:file:/C:/vordel/es";
