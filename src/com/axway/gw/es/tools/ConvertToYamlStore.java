@@ -42,22 +42,20 @@ public class ConvertToYamlStore {
 //	private static final String WHERE_TO_WRITE_ENTITIES = "C:\\vordel\\es\\root\\";
 
 	private static String ES_TO_LOAD;
-	private static String WHERE_TO_WRITE_TYPES;
-	private static String WHERE_TO_WRITE_ENTITIES;
+	private static String WHERE_TO_WRITE;
 
 	public static void main(String[] args) {
-		if (args.length < 3) {
-			LOGGER.info("You must provide where the existing fed file, where to write types and entities!!!!");
+		if (args.length < 2) {
+			LOGGER.info("usage: federated:file:/path-to-existing-fed.xml path-to-write-yaml");
 			System.exit(1);
-		} else {
-			ES_TO_LOAD = args[0];
-			WHERE_TO_WRITE_TYPES = args[1];
-			WHERE_TO_WRITE_ENTITIES = args[2];
 		}
+		ES_TO_LOAD = args[0];
+		String whereToWriteTypes = args[1] + "/.types";
+		String whereToWriteEntities = args[1] + "/root";
 		try {
 			ConvertToYamlStore converter = new ConvertToYamlStore(ES_TO_LOAD, new Properties());
-			converter.dumpTypesAsYaml(WHERE_TO_WRITE_TYPES);
-			converter.dumpEntitesAsYaml(WHERE_TO_WRITE_ENTITIES);
+			converter.dumpTypesAsYaml(whereToWriteTypes);
+			converter.dumpEntitesAsYaml(whereToWriteEntities);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
