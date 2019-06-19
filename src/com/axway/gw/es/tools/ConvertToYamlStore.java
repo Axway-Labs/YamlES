@@ -36,13 +36,7 @@ public class ConvertToYamlStore {
 		entityManager.writeEntities(new File(location));
 	}
 	
-	//private static final String ES_TO_LOAD = "file:/C:/vordel/Axway-7.6.2/policystudio/configuration/org.eclipse.osgi/bundles/43/1/.cp/system/conf/templates/config/VordelGateway/entityStores/FactoryConfiguration-VordelGateway/PrimaryStore.xml";
-//	private static final String ES_TO_LOAD = "federated:file:/C:/vordel/Axway-7.6.2/policystudio/configuration/org.eclipse.osgi/bundles/43/1/.cp/system/conf/templates/config/VordelGateway/entityStores/FactoryConfiguration-VordelGateway/configs.xml";
-//	private static final String WHERE_TO_WRITE = "C:\\vordel\\es\\.types\\";
-//	private static final String WHERE_TO_WRITE_ENTITIES = "C:\\vordel\\es\\root\\";
-
 	private static String ES_TO_LOAD;
-	private static String WHERE_TO_WRITE;
 
 	public static void main(String[] args) {
 		if (args.length < 2) {
@@ -56,6 +50,8 @@ public class ConvertToYamlStore {
 			ConvertToYamlStore converter = new ConvertToYamlStore(ES_TO_LOAD, new Properties());
 			converter.dumpTypesAsYaml(whereToWriteTypes);
 			converter.dumpEntitesAsYaml(whereToWriteEntities);
+			LOGGER.info("Successfully extracted yaml files.");
+			System.exit(0);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

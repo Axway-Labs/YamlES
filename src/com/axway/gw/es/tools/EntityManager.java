@@ -20,6 +20,7 @@ import com.vordel.es.Entity;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreDelegate;
 import com.vordel.es.EntityStoreException;
+import com.vordel.es.xes.PortableESPK;
 
 public class EntityManager {
 	private final static Logger LOGGER = Logger.getLogger(EntityManager.class.getName());
@@ -102,13 +103,31 @@ public class EntityManager {
 			}
 		}
 	}
+	private static boolean isLateBoundReference(final ESPK pk) {
+		if (pk instanceof PortableESPK)
+		{
+			final PortableESPK portableKey = (PortableESPK) pk;
+			final boolean isLateBound = "_lateBoundReference".equals(portableKey.getTypeNameOfReferencedEntity());
+			if (isLateBound) {
+				LOGGER.info("Late bound reference to " + portableKey.terse() + " expected at run-time");
+			}
+			return isLateBound;
+		}
 
+		return false;
+	}
 	private void setReferences(File dir, Entity value, com.axway.gw.es.tools.Entity ye) {
 		 List<com.vordel.es.Field> refs = value.getReferenceFields(); 
 		 for (com.vordel.es.Field field : refs) {
 			 ESPK ref = field.getReference(); // just deal with single at the moment
 			 if (!ref.equals(EntityStore.ES_NULL_PK)) {
-				 String key = createRelativePath(dir, getPath(dir, ref));
+				 String key;
+				 if (isLateBoundReference(ref)) {
+					key = ref.toString();
+				 }
+				 else {
+					key = createRelativePath(dir, getPath(dir, ref));
+				 }
 				 EntityField f = new EntityField();
 				 f.name = field.getName();
 				 f.value = key;
