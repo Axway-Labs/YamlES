@@ -58,6 +58,9 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 			throw new EntityStoreException("no directory to load entities from");
 		LOGGER.info("loading files from " + dir);
 		Entity entity = createParentEntity(dir, parentPK);
+		// This is dodgy.  What I saw happening is that types had their parent types set to their
+		// own PK, so when getting a hierarchy of types, the code could get stuck in an infinite
+		// loop [JAMIE]. Pretty sure this can be deleted.
 		parentPK = entity.getPK();
 		File[] files = dir.listFiles();
 		for (File file : files) {
