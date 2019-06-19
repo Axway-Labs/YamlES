@@ -24,10 +24,12 @@ import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreException;
 import com.vordel.es.EntityType;
 import com.vordel.es.Field;
+import com.vordel.es.impl.EntityTypeMap;
 import com.vordel.es.util.ESPKCollection;
 
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 	private final static Logger LOGGER = Logger.getLogger(YamlEntityStore.class.getName());
+	protected EntityTypeMap typeMap = new EntityTypeMap();
 
 	static String SCHEME = "yaml:";
 
@@ -263,7 +265,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 		return resList;
 	}
 
-
 	/**
 	 * Get a Set of ESPKs which identify all Entities in the store which
 	 * contain a field or fields which hold a reference to the Entity specified
@@ -308,8 +309,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 		loadEntities();
 		return;
 	}
-
-
 
 	/**
 	 * Disconnect from the EntityStore. Releases any resources which may
@@ -424,31 +423,23 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 		return null;
 	}
 
-
 	@Override
-	protected void deleteType(String arg0) throws EntityStoreException {
-		// TODO Auto-generated method stub
-
+	protected void deleteType(String typeName) throws EntityStoreException {
+		typeMap.removeType(typeName);
 	}
 
-
 	@Override
-	protected void persistType(EntityType arg0) throws EntityStoreException {
-		// TODO Auto-generated method stub
-
+	protected void persistType(EntityType type) throws EntityStoreException {
+		typeMap.addType(type);
 	}
 
-
 	@Override
-	protected String[] retrieveSubtypes(String arg0) throws EntityStoreException {
-		// TODO Auto-generated method stub
-		return null;
+	protected String[] retrieveSubtypes(String typeName) throws EntityStoreException {
+		return typeMap.getSubtypeNames(typeName);
 	}
 
-
 	@Override
-	protected EntityType retrieveType(String arg0) throws EntityStoreException {
-		// TODO Auto-generated method stub
-		return null;
+	protected EntityType retrieveType(String typeName) throws EntityStoreException {
+		return typeMap.getTypeForName(typeName);
 	}
 }
