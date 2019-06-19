@@ -1,5 +1,6 @@
 package com.axway.gw.es.yaml;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -7,15 +8,24 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.vordel.common.xml.XmlTransformerCache;
 import com.vordel.es.ConstantFieldType;
 import com.vordel.es.ESPK;
 import com.vordel.es.EntityStoreException;
@@ -23,10 +33,10 @@ import com.vordel.es.EntityType;
 import com.vordel.es.Field;
 import com.vordel.es.FieldType;
 import com.vordel.es.Value;
+import com.vordel.es.impl.BuilderFactory;
 import com.vordel.es.impl.ConstantField;
 
 public class YamlEntityType implements EntityType {
-
 	// name of the type
 	private String name;
 	// This type's parent type, from which this type inherits its schema. 
@@ -49,6 +59,8 @@ public class YamlEntityType implements EntityType {
 	// If this type is abstract, then there shouldn't be any instances of
 	// this specific type in the EntityStore, only of its subtypes.
 	public boolean isAbstract = false;
+	// cached encoded xml typedoc
+    private byte[] cachedDoc;
 
 	public static YamlEntityType convert(String name, com.axway.gw.es.tools.Type t) {
 		YamlEntityType type = YamlEntityType.convert(t);
@@ -431,9 +443,94 @@ public class YamlEntityType implements EntityType {
 	}
 
 	@Override
-	public void write(OutputStream arg0) throws IOException {
-		// TODO implement this
-		throw new IOException("Not yet implmented");
+	public void write(OutputStream os) throws IOException {
+		if (cachedDoc == null) {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			DocumentBuilder builder = BuilderFactory.getBuilder(EntityType.class);
+			Document doc = builder.newDocument();
+
+			Element entityType = doc.createElement("entityType");
+			entityType.setAttribute("xmlns", "http://www.vordel.com/2005/06/24/entityStore");
+			if (this.superType != null) {
+				entityType.setAttribute("extends", this.getSuperType().getName());
+			}
+			entityType.setAttribute("name", this.getName());
+
+			Set<Entry<String, ConstantField>> constantEntries = this.constants.entrySet();
+			Iterator<Entry<String, ConstantField>> it3 = constantEntries.iterator();
+			for (; it3.hasNext(); ) {
+				Entry<String, ConstantField> next = it3.next();
+				ConstantField value = next.getValue();
+
+				Element constant = doc.createElement("constant");
+				constant.setAttribute("name", next.getKey());
+				constant.setAttribute("type", value.getType().getType());
+				constant.setAttribute("value", value.getValue().getData());
+				entityType.appendChild(constant);
+			}
+
+			// Encode <field />
+			Set<Entry<String, FieldType>> fieldEntries = this.fieldTypes.entrySet();
+			Iterator<Entry<String, FieldType>> it = fieldEntries.iterator();
+			for (; it.hasNext(); ) {
+				Entry<String, FieldType> next = it.next();
+				FieldType value = next.getValue();
+				Element field = doc.createElement("field");
+
+				field.setAttribute("cardinality", value.getCardinality().toString());
+				String defaultValue = value.getDefault();
+				if (defaultValue != null) {
+					field.setAttribute("default", defaultValue);
+				}
+				field.setAttribute("name", next.getKey());
+				field.setAttribute("type", value.getType());
+
+				entityType.appendChild(field);
+			}
+			
+			Set<Entry<String, Object>> componentEntries = this.componentTypes.entrySet();
+			Iterator<Entry<String, Object>> it2 = componentEntries.iterator();
+			for (; it2.hasNext(); ) {
+				Entry<String, Object> next = it2.next();
+				Object value = next.getValue();
+
+				Element componentType = doc.createElement("componentType");
+				String cardinality = value.toString();
+				if (cardinality != "?") {
+					// net set on componentType when cardinality is '?' for some reason
+					componentType.setAttribute("cardinality", cardinality);
+				}
+				componentType.setAttribute("name", next.getKey());
+				entityType.appendChild(componentType);
+			}
+
+			Node type = (Node)entityType;
+
+			writeNodeAsXML(bos, type);
+
+			if (this.getName().equals("LdapDirectory")) {
+				type = null;
+			}
+
+			// make sure line separator is platform independent for normalization
+			cachedDoc = bos.toString().replace(System.getProperty("line.separator"), "\n").getBytes();
+		}
+		os.write(cachedDoc);
 	}
 
+	private static void writeNodeAsXML(OutputStream os, Node node) throws IOException {
+		XmlTransformerCache.CachedTransformer cachedXformer = XmlTransformerCache.get();
+		Transformer transformer = cachedXformer.transformer;
+		transformer.setOutputProperty(OutputKeys.ENCODING, "utf-8");
+		try {
+			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");  
+			transformer.transform(new DOMSource(node), new StreamResult(os));
+		} catch (javax.xml.transform.TransformerException ex) {
+			IOException ioe = new IOException("transformer failed during write");
+			ioe.initCause(ex);
+			throw ioe;
+		} finally {
+			XmlTransformerCache.release(cachedXformer);
+		}
+	}
 }
