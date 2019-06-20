@@ -4,19 +4,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.logging.Logger;
+
+import com.axway.gw.es.yaml.YAMLEntityStoreFactory;
 
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreDelegate;
-import com.vordel.es.EntityStoreFactory;
 import com.vordel.es.EntityType;
 import com.vordel.es.Value;
 
 public class CloneES {
-	
-	private static final String ES_TO_STORE = "federated:file:/C:/support/hack/configs.xml";
-	private static final String ES_TO_LOAD = "yaml:file:/C:/vordel/es/";
+
+	private final static Logger LOGGER = Logger.getLogger(ConvertToYamlStore.class.getName());
+
+//	private static final String ES_TO_STORE = "federated:file:/Users/lgarcia/Repositories/OAG/Other/BaseClean/BaseClean/21109d03-b18b-46be-83de-52d6ed149ff0/configs.xml";
+//	private static final String ES_TO_LOAD = "yaml:file:/Users/lgarcia/tmp/YamlES/output";
 	// private static final String ES_TO_LOAD = "yaml:file:/C:/support/shaw/YamlES/";
 	
 	EntityStore source;
@@ -91,11 +95,19 @@ public class CloneES {
 	
 	public static void main(String[] args) {
 		try {
-			EntityStore dest = EntityStoreFactory.createESForURL(ES_TO_STORE);
-			dest.connect(ES_TO_STORE, new Properties());
+			if (args.length < 2) {
+				LOGGER.info("usage: federated:file:/path-to-existing-base-configs.xml yaml:file:/directory-output");
+				System.exit(1);
+			}
+
+			String esToStore = args[0];
+			String esToLoad = args[1];
+
+			EntityStore dest = YAMLEntityStoreFactory.createESForURL(esToStore);
+			dest.connect(esToStore, new Properties());
 			
-			EntityStore source = EntityStoreFactory.createESForURL(ES_TO_LOAD);
-			source.connect(ES_TO_LOAD, new Properties());
+			EntityStore source = YAMLEntityStoreFactory.createESForURL(esToLoad);
+			source.connect(esToLoad, new Properties());
 			
 			CloneES fed = new CloneES(source, dest);
 			fed.cloneEntities(source.getRootPK(), dest.getRootPK());			
