@@ -55,23 +55,11 @@ public class EntityManager {
 		ye.type = value.getType().getName(); // may want to change this to the directory location of the type?
 		// deal with pk for this entity
 		File keyPath = getPath(dir, value.getPK());
-		String key;
-
-		if (value.getPK() == null)
-			key = createRelativePath(dir, keyPath);
-		else
-			key = value.getPK().toString();
-
+		String key = createRelativePath(dir, keyPath);
 		ye.key = key;
 		// deal with pk for parent  entity
 		File parentKeyPath = getPath(dir, value.getParentPK());
-		String parentPK;
-
-		if (value.getParentPK() == null)
-			parentPK = createRelativePath(dir, parentKeyPath);
-		else
-			parentPK = value.getParentPK().toString();
-
+		String parentPK = createRelativePath(dir, parentKeyPath);
 		ye.parent = parentPK;
 		// children?
 		ye.allowsChildren = value.getType().allowsChildEntities();
