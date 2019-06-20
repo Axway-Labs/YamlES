@@ -47,4 +47,12 @@ In the pom.xml file, update the version number of the following dependencies bas
 
 ### Convert .fed to yaml
 
+```java
+    java -cp YamlES-0.0.1-SNAPSHOT-jar-with-dependencies.jar com.axway.gw.es.tools.ConvertToYamlStore federated:file:<fed_file_directory>/configs.xml <yaml_output_directory>
+```
+
 ### Convert yaml to .fed
+
+```java
+    java -cp YamlES-0.0.1-SNAPSHOT-jar-with-dependencies.jar com.axway.gw.es.tools.CloneES federated:file:<fed_file_directory>/configs.xml <yaml_output_directory>
+```
