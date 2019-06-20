@@ -43,7 +43,13 @@ In the pom.xml file, update the version number of the following dependencies bas
 
 ## Build
 
+```java
+    mvn package
+```
+
 ## Test
+
+TODO
 
 ### Convert .fed to yaml
 
