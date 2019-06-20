@@ -59,23 +59,28 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 		if (dir == null)
 			throw new EntityStoreException("no directory to load entities from");
 		LOGGER.info("loading files from " + dir);
+
+		// create the parent entity using metadata.yaml
 		Entity entity = createParentEntity(dir, parentPK);
-		// This is dodgy.  What I saw happening is that types had their parent types set to their
-		// own PK, so when getting a hierarchy of types, the code could get stuck in an infinite
-		// loop [JAMIE]. Pretty sure this can be deleted.
-		parentPK = entity.getPK();
+
 		File[] files = dir.listFiles();
 		for (File file : files) {
-			if (file.isDirectory()) 
-				loadEntities(file, parentPK);
-			else 
-				createEntity(file, parentPK);
+			if (file.toString().endsWith("metadata.yaml")) {
+				// skip over metadata.yaml
+				continue;
+			}
+			if (file.isDirectory()) {
+				loadEntities(file, entity.getPK());
+			} else {
+				createEntity(file, entity.getPK());
+			}
 		}
 	}
 
 	private Entity createEntity(File file, ESPK parentPK) throws JsonParseException, JsonMappingException, IOException {
 		com.axway.gw.es.tools.Entity e = mapper.readValue(file, com.axway.gw.es.tools.Entity.class);
 		Entity entity = EntityFactory.convert(e, parentPK, this); 
+		Collection<Entity> children = entities.getChildren(parentPK);
 		entities.add(parentPK, entity);
 		return entity;
 	}
