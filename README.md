@@ -1,6 +1,6 @@
-#YAML Generator
+# YAML Generator
 
-##Configuration
+## Configuration
 
 Adding ES Core jar file to your local Maven repository.  Run the following command.
 ```java
@@ -41,10 +41,10 @@ In the pom.xml file, update the version number of the following dependencies bas
     </dependency>
 ```
 
-##Build
+## Build
 
-##Test
+## Test
 
-###Convert .fed to yaml
+### Convert .fed to yaml
 
-###Convert yaml to .fed
+### Convert yaml to .fed
