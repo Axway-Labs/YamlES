@@ -6,11 +6,12 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import com.axway.gw.es.yaml.YAMLEntityStoreFactory;
+
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreDelegate;
-import com.vordel.es.EntityStoreFactory;
 import com.vordel.es.EntityType;
 import com.vordel.es.Value;
 
@@ -112,10 +113,10 @@ public class CloneES {
 		ES_TO_LOAD = args[1];
 
 		try {
-			EntityStore dest = EntityStoreFactory.createESForURL(ES_TO_STORE);
+			EntityStore dest = YAMLEntityStoreFactory.createESForURL(ES_TO_STORE);
 			dest.connect(ES_TO_STORE, new Properties());
 			
-			EntityStore source = EntityStoreFactory.createESForURL(ES_TO_LOAD);
+			EntityStore source = YAMLEntityStoreFactory.createESForURL(ES_TO_LOAD);
 			source.connect(ES_TO_LOAD, new Properties());
 			
 			CloneES fed = new CloneES(source, dest);
