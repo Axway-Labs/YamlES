@@ -24,6 +24,23 @@ Adding API Gateway Common to your local Maven repository.  Run the following com
     -DgeneratePom=true
 ```
 
+In the pom.xml file, update the version number of the following dependencies based on what was installed above.
+```java
+    <!-- Local dependency to es-core-7.x.x-x.jar -->
+    <dependency>
+        <groupId>es-core</groupId>
+        <artifactId>es-core</artifactId>
+        <version>7.7</version>
+    </dependency>
+
+    <!-- Local dependency to apigw-common-7.x.x-x.jar -->
+    <dependency>
+        <groupId>apigw-common</groupId>
+        <artifactId>apigw-common</artifactId>
+        <version>7.7</version>
+    </dependency>
+```
+
 ##Build
 
 ##Test
