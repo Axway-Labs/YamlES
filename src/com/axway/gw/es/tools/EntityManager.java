@@ -43,10 +43,12 @@ public class EntityManager {
 		// must provide dir
 		if (!dir.isDirectory())
 			throw new IOException("Must provide a directory for YAML output");
-		for (Map.Entry<ESPK,Entity> entry : entities.entrySet()) {  
-			LOGGER.info("Dumping type " + entry.getKey());
-			com.axway.gw.es.tools.Entity e = yamlize(dir, entry.getValue());
-			//writeType(dir, t);
+		for (Map.Entry<ESPK,Entity> entry : entities.entrySet()) {
+			if (!entry.getValue().getType().getName().equals("InternationalizationCategory")) {
+				LOGGER.info("Dumping type " + entry.getKey());
+				com.axway.gw.es.tools.Entity e = yamlize(dir, entry.getValue());
+				//writeType(dir, t);
+			}
 		}
 	}
 
