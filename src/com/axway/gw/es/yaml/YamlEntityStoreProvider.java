@@ -6,7 +6,7 @@ import java.util.Collection;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreProvider;
 
-public class YAMLEntityStoreProvider extends EntityStoreProvider  {
+public class YamlEntityStoreProvider extends EntityStoreProvider  {
 
 	private static final Collection<String> connectionCredentials = new ArrayList<String>();  
 

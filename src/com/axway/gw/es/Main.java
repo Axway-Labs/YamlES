@@ -5,7 +5,7 @@ import java.io.File;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
-import com.axway.gw.es.tools.Type;
+import com.axway.gw.es.model.type.Type;
 
 public class Main {
 	

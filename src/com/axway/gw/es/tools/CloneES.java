@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import com.axway.gw.es.yaml.YAMLEntityStoreFactory;
+import com.axway.gw.es.yaml.YamlEntityStoreFactory;
 
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
@@ -113,10 +113,10 @@ public class CloneES {
 		ES_TO_LOAD = args[1];
 
 		try {
-			EntityStore dest = YAMLEntityStoreFactory.createESForURL(ES_TO_STORE);
+			EntityStore dest = YamlEntityStoreFactory.createESForURL(ES_TO_STORE);
 			dest.connect(ES_TO_STORE, new Properties());
 			
-			EntityStore source = YAMLEntityStoreFactory.createESForURL(ES_TO_LOAD);
+			EntityStore source = YamlEntityStoreFactory.createESForURL(ES_TO_LOAD);
 			source.connect(ES_TO_LOAD, new Properties());
 			
 			CloneES fed = new CloneES(source, dest);

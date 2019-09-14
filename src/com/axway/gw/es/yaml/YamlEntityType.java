@@ -20,6 +20,8 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import com.axway.gw.es.model.type.Child;
+import com.axway.gw.es.model.type.Type;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -62,7 +64,7 @@ public class YamlEntityType implements EntityType {
 	// cached encoded xml typedoc
     private byte[] cachedDoc;
 
-	public static YamlEntityType convert(String name, com.axway.gw.es.tools.Type t) {
+	public static YamlEntityType convert(String name, Type t) {
 		YamlEntityType type = YamlEntityType.convert(t);
 		type.setName(name);
 		return type;
@@ -80,24 +82,24 @@ public class YamlEntityType implements EntityType {
 		}
 	}
 	
-	public static YamlEntityType convert(com.axway.gw.es.tools.Type t) {
+	public static YamlEntityType convert(Type t) {
 		YamlEntityType type = new YamlEntityType();
 		type.isAbstract = t.isAbstract;
 		// constants
-		for (com.axway.gw.es.tools.ConstantField constant : t.constants) {
+		for (com.axway.gw.es.model.type.ConstantField constant : t.constants) {
 			ConstantFieldType cft = new ConstantFieldTypeInner(constant.type, new Value(constant.value));
 			ConstantField field = new ConstantField(cft, constant.name);
 			type.constants.put(constant.name, field); 
 		}
 		// fields 
-		for (com.axway.gw.es.tools.Field field : t.fields) {
+		for (com.axway.gw.es.model.type.Field field : t.fields) {
 			FieldType ft = new FieldTypeInner(field.type, field.cardinality, new ArrayList<Value>());
 			type.fieldTypes.put(field.name, ft);
 			if (field.isKey) 
 				type.keyFieldNames.add(field.name);
 		}
 		// components
-		for (com.axway.gw.es.tools.Child child : t.component) {
+		for (Child child : t.component) {
 			type.componentTypes.put(child.name, child.cardinality);
 		}
 		return type;

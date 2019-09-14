@@ -6,6 +6,8 @@ import com.vordel.es.EntityType;
 import com.vordel.es.FieldType;
 import com.vordel.es.Value;
 
+import java.util.Map;
+
 public class EntityFactory {
 	
 	private static class MyEntity extends Entity {
@@ -21,26 +23,26 @@ public class EntityFactory {
 		}
 	}
 	
-	public static Entity convert(com.axway.gw.es.tools.Entity e, ESPK parentPK, YamlEntityStore es) {
-		EntityType type = es.getTypeForName(e.type);
+	public static Entity convert(com.axway.gw.es.model.entity.Entity e, ESPK parentPK, YamlEntityStore es) {
+		EntityType type = es.getTypeForName(e.meta.type);
 		MyEntity entity = new MyEntity(type);
 		
 		// fields
-		for (com.axway.gw.es.tools.EntityField field : e.fields) {
-			if (!type.isConstantField(field.name)) { // don't set constants 
-				FieldType ft = type.getFieldType(field.name);
+		for (Map.Entry<String, String> field : e.fields.entrySet()) {
+			if (!type.isConstantField(field.getKey())) { // don't set constants
+				FieldType ft = type.getFieldType(field.getKey());
 				if (ft.isRefType() || ft.isSoftRefType()) 
-					entity.setReferenceField(field.name, new YAMLPK(field.value));
+					entity.setReferenceField(field.getKey(), new YamlPK(field.getValue()));
 				else  // set the value
-					entity.setField(field.name, new Value[] {new Value(field.value)});
+					entity.setField(field.getKey(), new Value[] {new Value(field.getValue())});
 			}
 		}
 		
 		// pk
-		ESPK pk = new YAMLPK(e.key);
+		ESPK pk = new YamlPK(parentPK, e.name);
 		entity.setPK(pk);
 		// parent pk
-		//ESPK parentPK = new YAMLPK(e.parent);
+		//ESPK parentPK = new YamlPK(e.parent);
 		entity.setParentPK(parentPK);
 		return entity;
 	}

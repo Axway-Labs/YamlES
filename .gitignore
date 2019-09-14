@@ -249,6 +249,10 @@ local.properties
 .loadpath
 .recommenders
 
+### IDEA template
+*.iml
+.idea
+
 # External tool builders
 .externalToolBuilders/
 

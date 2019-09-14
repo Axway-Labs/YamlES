@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import com.axway.gw.es.model.type.Child;
+import com.axway.gw.es.model.type.ConstantField;
+import com.axway.gw.es.model.type.Field;
+import com.axway.gw.es.model.type.Type;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

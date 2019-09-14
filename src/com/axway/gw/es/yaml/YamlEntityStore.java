@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import com.axway.gw.es.model.type.Type;
 import org.apache.commons.io.FilenameUtils;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -36,7 +37,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 	ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
 	File rootLocation = null;
-	ESPK root = new YAMLPK("");
+	ESPK root = new YamlPK("");
 
 	IndexedEntityTree entities = new IndexedEntityTree();
 	
@@ -78,7 +79,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 	}
 
 	private Entity createEntity(File file, ESPK parentPK) throws JsonParseException, JsonMappingException, IOException {
-		com.axway.gw.es.tools.Entity e = mapper.readValue(file, com.axway.gw.es.tools.Entity.class);
+		com.axway.gw.es.model.entity.Entity e = mapper.readValue(file, com.axway.gw.es.model.entity.Entity.class);
 		Entity entity = EntityFactory.convert(e, parentPK, this); 
 		Collection<Entity> children = entities.getChildren(parentPK);
 		entities.add(parentPK, entity);
@@ -146,7 +147,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 	}
 
 	private YamlEntityType createType(String name, File file) throws JsonParseException, JsonMappingException, IOException {
-		com.axway.gw.es.tools.Type t = mapper.readValue(file, com.axway.gw.es.tools.Type.class);
+		Type t = mapper.readValue(file, Type.class);
 		return YamlEntityType.convert(name, t); 
 	}
 

@@ -26,7 +26,7 @@ import com.vordel.es.xes.PortableESPKFactory;
 
 public class DeleteAllEntities {
 
-	private final static Logger LOGGER = Logger.getLogger(CloneES.class.getName());
+	private final static Logger LOGGER = Logger.getLogger(DeleteAllEntities.class.getName());
 	
 	private EntityStore store;
     private List<ESPK> removedPKs = new ArrayList<ESPK>();

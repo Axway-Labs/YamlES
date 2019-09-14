@@ -12,14 +12,14 @@ import com.vordel.es.EntityTypeFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class YAMLEntityStoreFactory {
-	final static Logger logger = LoggerFactory.getLogger(YAMLEntityStoreFactory.class);
+public class YamlEntityStoreFactory {
+	final static Logger logger = LoggerFactory.getLogger(YamlEntityStoreFactory.class);
 
 	public static final String DBG_ES_TYPE_FACTORY = "entityStore.typeFactory";
 
 	private EntityTypeFactory etFactory;
 
-	private static ServiceLoader<EntityStoreProvider> esLoader = ServiceLoader.load(EntityStoreProvider.class, YAMLEntityStoreFactory.class.getClassLoader());
+	private static ServiceLoader<EntityStoreProvider> esLoader = ServiceLoader.load(EntityStoreProvider.class, YamlEntityStoreFactory.class.getClassLoader());
 
 	public static EntityStore createESForURL(String url) throws EntityStoreException {
 		EntityStore es = createESFromServiceLoader(url);
@@ -35,7 +35,7 @@ public class YAMLEntityStoreFactory {
 				return es;
 		}
 
-		EntityStore es = new YAMLEntityStoreProvider().createStoreForURL(url);
+		EntityStore es = new YamlEntityStoreProvider().createStoreForURL(url);
 
 		if (es != null)
 			return es;
@@ -43,13 +43,13 @@ public class YAMLEntityStoreFactory {
 		return null;
 	}
 
-	private YAMLEntityStoreFactory() {}
+	private YamlEntityStoreFactory() {}
 
-	private static YAMLEntityStoreFactory instance;
+	private static YamlEntityStoreFactory instance;
 
-	public static final YAMLEntityStoreFactory getInstance() {
+	public static final YamlEntityStoreFactory getInstance() {
 		if (instance == null) {
-			instance = new YAMLEntityStoreFactory();
+			instance = new YamlEntityStoreFactory();
 		}
 		return instance;
 	}

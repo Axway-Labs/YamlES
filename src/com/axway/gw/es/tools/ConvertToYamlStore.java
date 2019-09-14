@@ -18,7 +18,7 @@ public class ConvertToYamlStore {
 
 	private final static Logger LOGGER = Logger.getLogger(ConvertToYamlStore.class.getName());
 	
-	TypeManager typeManager = null;
+	TypeManager typeManager;
 	EntityManager entityManager = null;
 	EntityStore es = null;
 	
@@ -50,7 +50,7 @@ public class ConvertToYamlStore {
 		typeManager.writeTypes(new File(location));
 	}
 	
-	public void dumpEntitesAsYaml(String location) throws JsonGenerationException, JsonMappingException, IOException {
+	public void dumpEntitiesAsYaml(String location) throws JsonGenerationException, JsonMappingException, IOException {
 		LOGGER.info("Dumping entities to " + location);
 		entityManager.writeEntities(new File(location));
 	}
@@ -71,7 +71,7 @@ public class ConvertToYamlStore {
 			converter.delete(whereToWriteTypes);
 			converter.delete(whereToWriteEntities);
 			converter.dumpTypesAsYaml(whereToWriteTypes);
-			converter.dumpEntitesAsYaml(whereToWriteEntities);
+			converter.dumpEntitiesAsYaml(whereToWriteEntities);
 			LOGGER.info("Successfully extracted yaml files.");
 			System.exit(0);
 		} catch (Exception e) {
