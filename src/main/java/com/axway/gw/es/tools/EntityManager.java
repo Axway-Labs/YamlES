@@ -50,7 +50,7 @@ public class EntityManager {
 
         for (com.axway.gw.es.model.entity.Entity ye : mappedEntities) {
             // deal with pk for parent  entity
-            dumpAsYaml(new File(dir, sanitizeFilename(ye.key)), ye);
+            dumpAsYaml(new File(dir, ye.key), ye);
         }
     }
 
@@ -212,21 +212,43 @@ public class EntityManager {
     }
 
     private void extractContent(com.axway.gw.es.model.entity.Entity ye, File f) throws IOException {
+        if (ye.children != null) {
+            for (com.axway.gw.es.model.entity.Entity yChild : ye.children.values()) {
+                extractContent(yChild, f);
+            }
+        }
+
+        File dir = f.getParentFile();
         switch (ye.meta.type) {
+            case "JavaScriptFilter":
+                 dir = new File(f.getAbsolutePath().replace(".yaml", "-Scripts"));
+                extractContent(ye, dir, sanitizeFilename(ye.name) + "." + ye.fields.get("engineName"), "script", false);
+                break;
             case "Script":
-                extractContent(ye, f, ye.name + "." + ye.fields.get("engineName"), "script", false);
+                extractContent(ye, dir, ye.name + "." + ye.fields.get("engineName"), "script", false);
                 break;
             case "Stylesheet":
-                extractContent(ye, f, ye.fields.get("URL") + ".xsl", "contents", true);
+                extractContent(ye, dir, ye.fields.get("URL") + ".xsl", "contents", true);
                 break;
             case "Certificate":
-                extractContent(ye, f, f.getName().replace(".yaml", ".pem"), "key", true);
-                extractContent(ye, f, f.getName().replace(".yaml", ".crt"), "content", true);
+                extractContent(ye, dir, f.getName().replace(".yaml", ".pem"), "key", true);
+                extractContent(ye, dir, f.getName().replace(".yaml", ".crt"), "content", true);
+                break;
+            case "ResourceBlob":
+                String type = ye.fields.get("type");
+                switch (type) {
+                    case "schema": type = "xsd"; break;
+                }
+
+                extractContent(ye, dir, ye.fields.get("ID") + "." + type, "content", true);
                 break;
         }
     }
 
-    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File f, String fileName, String field, boolean base64Decode) throws IOException {
+    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File dir, String fileName, String field, boolean base64Decode) throws IOException {
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
         String content = ye.fields.remove(field);
         if (content == null) {
             return;
@@ -237,7 +259,7 @@ public class EntityManager {
         } else {
             data = content.getBytes();
         }
-        Files.write(f.getParentFile().toPath().resolve(fileName), data);
+        Files.write(dir.toPath().resolve(fileName), data);
         ye.fields.put(field, "file:" + fileName);
     }
 
@@ -329,7 +351,7 @@ public class EntityManager {
             if (i < keyNames.length - 1)
                 b.append("$");
         }
-        return b.toString().replaceAll("/", "").trim();
+        return sanitizeFilename(b.toString());
     }
 
     /**
@@ -340,7 +362,7 @@ public class EntityManager {
     private String sanitizeFilename(String name) {
         if (name == null)
             LOGGER.info("hello");
-        return name.trim().replaceAll("[:\"*?<>|]+", "_");
+        return name.trim().replaceAll("[\\/:\"*?<>|]+", "_");
     }
 
     private void loadEntities(ESPK pk) {
