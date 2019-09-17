@@ -6,20 +6,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.*;
 import com.vordel.es.xes.PortableESPK;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 @SuppressWarnings({"WeakerAccess", "ResultOfMethodCallIgnored"})
 public class EntityManager {
-    private final static Logger LOGGER = Logger.getLogger(EntityManager.class.getName());
+    private final static Logger LOGGER = LoggerFactory.getLogger(EntityManager.class);
 
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
@@ -53,19 +54,19 @@ public class EntityManager {
         for (com.axway.gw.es.model.entity.Entity ye : mappedEntities) {
             // deal with pk for parent  entity
             dumpAsYaml(new File(dir, sanitizeFilename(ye.key)), ye);
-
         }
     }
 
-    private com.axway.gw.es.model.entity.Entity yamlize(Entity value, String parentKey) {
-        LOGGER.info("Yamlize " + value.getPK());
+    private com.axway.gw.es.model.entity.Entity yamlize(Entity value, boolean allowChildren) {
+        LOGGER.debug("Yamlize " + value.getPK());
         com.axway.gw.es.model.entity.Entity ye = new com.axway.gw.es.model.entity.Entity();
-        ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
+        //ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
+        ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
         // deal with pk for this entity
-        ye.key = parentKey  + "/" + getKeyValues(value);
-        //ye.parent = getPath(value.getParentPK()).toString();
+        ye.key = getPath(value.getPK());
+        // ye.parentType = value.getParentPK() == null? null : getTypePath(getEntity(value.getParentPK()).getType());
         // children?
-        ye.allowsChildren = isAllowsChildren(value);
+        ye.allowsChildren = allowChildren && isAllowsChildren(value);
         // fields
         setFields(value, ye);
         setReferences(value, ye);
@@ -75,7 +76,7 @@ public class EntityManager {
                 inlined.add(childPK);
 
                 Entity child = getEntity(childPK);
-                com.axway.gw.es.model.entity.Entity ychild = yamlize(child, ye.key);
+                com.axway.gw.es.model.entity.Entity ychild = yamlize(child, false);
                 ye.addChild(ychild);
                 ychild.key = null;
             }
@@ -84,28 +85,139 @@ public class EntityManager {
         return ye;
     }
 
+    public static final Map<String, String> TOPLEVEL = new HashMap<>();
 
-    private static final Set<String> INLINED = new HashSet<>(Arrays.asList("FilterCircuit", "EnvironmentalizedEntity", "XPath"));
+    {
+        TOPLEVEL.put("FilterCircuit", "Policies");
+        TOPLEVEL.put("CircuitContainer", "Policies");
+        TOPLEVEL.put("WebServiceGroup", "APIs");
+        TOPLEVEL.put("WebServiceRepository", "APIs");
+
+        TOPLEVEL.put("JSONSchemaGroup", "Resources");
+        TOPLEVEL.put("ScriptGroup", "Resources");
+        TOPLEVEL.put("StylesheetGroup", "Resources");
+        TOPLEVEL.put("XmlSchemaGroup", "Resources");
+        TOPLEVEL.put("XPathGroup", "Resources");
+        TOPLEVEL.put("ResourceRepository", "Resources");
+
+        TOPLEVEL.put("KPSRoot", "Environment Configuration");
+        TOPLEVEL.put("EnvironmentalizedEntities", "Environment Configuration");
+        TOPLEVEL.put("Certificates", "Environment Configuration");
+        TOPLEVEL.put("PGPKeyPairs", "Environment Configuration");
+        TOPLEVEL.put("NetService", "Environment Configuration");
+        TOPLEVEL.put("UserStore", "Environment Configuration");
+
+        TOPLEVEL.put("CacheManager", "Libraries");
+        TOPLEVEL.put("AlertManager", "Libraries");
+        TOPLEVEL.put("RegularExpressionGroup", "Libraries");
+        TOPLEVEL.put("OAuth2StoresGroup", "Libraries");
+        TOPLEVEL.put("CronExpressionGroup", "Libraries");
+        TOPLEVEL.put("CORSGroup", "Libraries");
+        TOPLEVEL.put("WAFProfileGroup", "Libraries");
+
+        TOPLEVEL.put("AWSSettings", "External Connections");
+        TOPLEVEL.put("AuthnRepositoryGroup", "External Connections");
+        TOPLEVEL.put("ConnectionSetGroup", "External Connections");
+        TOPLEVEL.put("AuthProfilesGroup", "External Connections");
+        TOPLEVEL.put("DbConnectionGroup", "External Connections");
+        TOPLEVEL.put("ICAPServerGroup", "External Connections");
+        TOPLEVEL.put("JMSServiceGroup", "External Connections");
+        TOPLEVEL.put("LdapDirectoryGroup", "External Connections");
+        TOPLEVEL.put("ProxyServerGroup", "External Connections");
+        TOPLEVEL.put("SentinelServerGroup", "External Connections");
+        TOPLEVEL.put("SiteMinderConnectionSet", "External Connections");
+        TOPLEVEL.put("SMTPServerGroup", "External Connections");
+        TOPLEVEL.put("SyslogServerGroup", "External Connections");
+        TOPLEVEL.put("RendezvousDaemonGroup", "External Connections");
+        TOPLEVEL.put("UrlSetGroup", "External Connections");
+        TOPLEVEL.put("XkmsConfigGroup", "External Connections");
+        TOPLEVEL.put("RadiusClients", "External Connections");
+        TOPLEVEL.put("SunAccessManagerSettings", "External Connections");
+        TOPLEVEL.put("PassPortKeyStoreManager", "External Connections");
+        TOPLEVEL.put("TivoliActionGroupGroup", "External Connections");
+        TOPLEVEL.put("TivoliSettingsGroup", "External Connections");
+
+        TOPLEVEL.put("AccessLogger", "Server Settings");
+        TOPLEVEL.put("CassandraSettings", "Server Settings");
+        TOPLEVEL.put("EventLog", "Server Settings");
+        TOPLEVEL.put("LogManager", "Server Settings");
+        TOPLEVEL.put("RealtimeMonitoring", "Server Settings");
+        TOPLEVEL.put("PortalCallbackGroup", "Server Settings");
+        TOPLEVEL.put("MimeTypeGroup", "Server Settings");
+        TOPLEVEL.put("OPDbConfig", "Server Settings");
+        TOPLEVEL.put("SystemSettings", "Server Settings");
+        TOPLEVEL.put("OpenTrafficEventLog", "Server Settings");
+        TOPLEVEL.put("PortalConfiguration", "Server Settings");
+        TOPLEVEL.put("ZeroDowntime", "Server Settings");
+    }
+
+    private String getTopLevel(EntityType type) {
+        String topLevel = TOPLEVEL.get(type.getName());
+        return topLevel == null ? "System" : topLevel;
+    }
+
+    private String getTypePath(EntityType type) {
+        if (type.getSuperType() == null) {
+            return type.getName();
+        }
+        return getTypePath(type.getSuperType()) + "/" + type;
+    }
+
+
+    private static final Set<String> EXPANDED = new HashSet<>(Arrays.asList("KPSRoot"));
+    private static final Set<String> INLINED = new HashSet<>(Arrays.asList(
+            "User", // Entity/Identity
+            "FilterCircuit", // Entity/RootChild
+            "EnvironmentalizedEntity", // Entity
+            "MetricGroupTypes", // Entity
+            "MetricTypes", // Entity
+            "CategoryGroup", // Entity/RootChild/NamedTopLevelGroup
+            "Internationalization", // Entity/RootChild/NamedTopLevelGroup
+            "HTTPRetryStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
+            "HTTPStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
+            "PolicyCategoryGroup", // Entity/RootChild/NamedTopLevelGroup
+            "RegistryCategorizationSchemeGroup", // Entity/RootChild/NamedTopLevelGroup
+            "ElementSpecifiers", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "MimeTypeGroup", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "NamespacesConfiguration", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "TokenFinderSet", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "ParserFeatureGroup" // Entity/RootChild/LoadableModule/NativeModule
+    ));
 
     private boolean isAllowsChildren(Entity value) {
-        return value.getType().allowsChildEntities()
-                && !value.getType().extendsType("NamedLoadableModule")
-                && !value.getType().extendsType("NamedGroup")
+        return value.getType().allowsChildEntities() && !INLINED.contains(value.getType().getName())
+                && (value.getType().extendsType("NamedLoadableModule")
+                || EXPANDED.contains(value.getType().getName())
+                || !value.getType().extendsType("NamedGroup")
+                && !value.getType().extendsType("LoadableModule")
                 && !value.getType().extendsType("Filter")
                 && !value.getType().extendsType("KPSStore")
-                && !value.getType().extendsType("KPSType")
-                && !INLINED.contains(value.getType().getName());
+                && !value.getType().extendsType("KPSType"));
     }
 
     private void dumpAsYaml(File out, com.axway.gw.es.model.entity.Entity ye) {
         try {
             if (ye.allowsChildren) { // handle as directory with metadata
                 out.mkdirs();
-                mapper.writeValue(new File(out, "metadata.yaml"), ye);
+                mapper.writeValue(new File(out, "metadata-" + ye.meta.type.substring(ye.meta.type.lastIndexOf('/') + 1) + ".yaml"), ye);
             } else { // handle as file
                 String filename = out.getPath() + ".yaml";
                 File f = new File(filename);
                 f.getParentFile().mkdirs();
+
+                if (ye.meta.type.endsWith("Script")) {
+                    String extension = ye.fields.get("engineName");
+                    String script = ye.fields.remove("script");
+                    String fileName = ye.name + "." + extension;
+                    Files.write(f.getParentFile().toPath().resolve(fileName), script.getBytes());
+                    ye.fields.put("script", "file:" + fileName);
+                } else if (ye.meta.type.endsWith("Stylesheet")) {
+                    String contents = ye.fields.remove("contents");
+                    Path fileName = f.getParentFile().toPath().resolve(ye.fields.get("URL") + ".xsl");
+                    Files.write(fileName, Base64.getDecoder().decode(contents.replace("\n", "")));
+                    ye.fields.put("contents", "file:" + fileName);
+                }
+
                 mapper.writeValue(f, ye);
             }
         } catch (Exception e) {
@@ -139,8 +251,6 @@ public class EntityManager {
     }
 
     private void setReferences(Entity value, com.axway.gw.es.model.entity.Entity ye) {
-        File dir = new File(".");
-
         List<com.vordel.es.Field> refs = value.getReferenceFields();
         for (com.vordel.es.Field field : refs) {
             ESPK ref = field.getReference(); // just deal with single at the moment
@@ -167,9 +277,12 @@ public class EntityManager {
         StringBuilder builder = new StringBuilder();
 
         List<Entity> path = pathToRoot(pk);
-        LOGGER.info("path to root is depth: " + path.size());
+        LOGGER.debug("path to root is depth: " + path.size());
         for (Entity entity : path) {
             String name = getKeyValues(entity);
+            if (builder.length() == 0) {
+                builder.append(getTopLevel(entity.getType()));
+            }
             if (builder.length() > 0) {
                 builder.append('/');
             }
@@ -214,12 +327,6 @@ public class EntityManager {
         return name.trim().replaceAll("[:\"*?<>|]+", "_");
     }
 
-    private void writeType(File dir, String fileName, Type t) throws IOException {
-        LOGGER.info("Dumping type " + t.getName() + " to file " + fileName);
-        File out = new File(dir, fileName);
-        mapper.writeValue(out, t);
-    }
-
     private void loadEntities(ESPK pk) {
         loadEntity(pk);
         Collection<ESPK> children = es.listChildren(pk, null);
@@ -232,7 +339,7 @@ public class EntityManager {
             return;
         }
         Entity e = getEntity(pk);
-        com.axway.gw.es.model.entity.Entity ye = yamlize(e, getPath(e.getParentPK()));
+        com.axway.gw.es.model.entity.Entity ye = yamlize(e, true);
         mappedEntities.add(ye);
 
         //LOGGER.info("Loaded entity:  " + TraceEntity.describeEntity(e));
@@ -278,7 +385,7 @@ public class EntityManager {
                 path.add(0, e);
                 pk = e.getParentPK();
             } catch (EntityStoreException p) {
-                LOGGER.finer("ESPK not found in current ES: " + pk);
+                LOGGER.trace("ESPK not found in current ES: " + pk);
             }
         }
         return path;

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 import com.axway.gw.es.yaml.YamlEntityStoreFactory;
 
@@ -14,9 +13,11 @@ import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreDelegate;
 import com.vordel.es.EntityType;
 import com.vordel.es.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CloneES {
-	private final static Logger LOGGER = Logger.getLogger(CloneES.class.getName());
+	private final static Logger LOGGER = LoggerFactory.getLogger(CloneES.class.getName());
 
 //	private static final String ES_TO_STORE = "federated:file:/Users/enord/Axway/ClientTools/7.7/policystudio/configuration/org.eclipse.osgi/bundles/43/1/.cp/system/conf/templates/config/VordelGateway/entityStores/FactoryConfiguration-VordelGateway/configs.xml";
 //	private static final String ES_TO_LOAD = "yaml:file:/Users/enord/Development/gitlab/axwaydocker/compose/data/feddeploy/yaml/";

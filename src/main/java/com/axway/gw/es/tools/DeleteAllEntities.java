@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
@@ -23,10 +22,12 @@ import com.vordel.es.xes.ExportEngine;
 import com.vordel.es.xes.ExportEngine.Directives;
 import com.vordel.es.xes.PortableESPK;
 import com.vordel.es.xes.PortableESPKFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteAllEntities {
 
-	private final static Logger LOGGER = Logger.getLogger(DeleteAllEntities.class.getName());
+	private final static Logger LOGGER = LoggerFactory.getLogger(DeleteAllEntities.class);
 	
 	private EntityStore store;
     private List<ESPK> removedPKs = new ArrayList<ESPK>();

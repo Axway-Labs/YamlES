@@ -7,16 +7,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConvertToYamlStore {
 
-	private final static Logger LOGGER = Logger.getLogger(ConvertToYamlStore.class.getName());
+	private final static Logger LOGGER = LoggerFactory.getLogger(ConvertToYamlStore.class);
 	
 	TypeManager typeManager;
 	EntityManager entityManager = null;
@@ -38,19 +39,20 @@ public class ConvertToYamlStore {
 				Files.walk(rootPath)
 						.sorted(Comparator.reverseOrder())
 						.map(Path::toFile)
-						.peek(System.out::println)
+						//.peek(System.out::println)
 						.forEach(File::delete);
 			}
 			catch (IOException e)
 			{ LOGGER.info("Unable to delete directory " + location); }
 	}
 
-	public void dumpTypesAsYaml(String location) throws JsonGenerationException, JsonMappingException, IOException {
+	public void dumpTypesAsYaml(String location) throws IOException {
 		LOGGER.info("Dumping types to " + location);
-		typeManager.writeTypes(new File(location));
+		typeManager.writeBaseType(new File(location));
+		//typeManager.writeTypes(new File(location));
 	}
 	
-	public void dumpEntitiesAsYaml(String location) throws JsonGenerationException, JsonMappingException, IOException {
+	public void dumpEntitiesAsYaml(String location) throws IOException {
 		LOGGER.info("Dumping entities to " + location);
 		entityManager.writeEntities(new File(location));
 	}
@@ -64,12 +66,12 @@ public class ConvertToYamlStore {
 		}
 		ES_TO_LOAD = args[0];
 		String whereToWriteTypes = args[1] + "/.types";
-		String whereToWriteEntities = args[1] + "/root";
+		String whereToWriteEntities = args[1] + "/";
 		try {
 			ConvertToYamlStore converter = new ConvertToYamlStore(ES_TO_LOAD, new Properties());
 			LOGGER.info("Deleting folders");
-			converter.delete(whereToWriteTypes);
-			converter.delete(whereToWriteEntities);
+			converter.delete(args[1]);
+			Thread.sleep(2000);
 			converter.dumpTypesAsYaml(whereToWriteTypes);
 			converter.dumpEntitiesAsYaml(whereToWriteEntities);
 			LOGGER.info("Successfully extracted yaml files.");

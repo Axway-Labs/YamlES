@@ -9,7 +9,7 @@ public class Entity {
 
     @JsonIgnore
     public String key;
-    //public String parent;
+
     public String name;
 
     public Meta meta = new Meta();
