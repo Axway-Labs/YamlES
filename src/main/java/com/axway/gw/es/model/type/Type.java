@@ -1,6 +1,7 @@
 package com.axway.gw.es.model.type;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.ConstantFieldType;
@@ -9,7 +10,9 @@ import com.vordel.es.EntityType;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Type {
@@ -19,6 +22,7 @@ public class Type {
     private String name;
 
     public Integer version;
+    @JsonProperty("class")
     public String clazz;
     public Integer loadorder;
 
@@ -28,18 +32,14 @@ public class Type {
     public String parent;
     @JsonIgnore
     public boolean isAbstract = false;
-    public List<ConstantField> constants = new ArrayList<>();
-    public List<Field> fields = new ArrayList<>();
-    public List<Child> component = new ArrayList<>();
+    public Map<String, ConstantField> constants = new LinkedHashMap<>();
+    public Map<String, Field> fields = new LinkedHashMap<>();
+    public Map<String, String> components = new LinkedHashMap<>();
     public List<String> pathToRoot = new ArrayList<>();
     private List<Type> children = new ArrayList<>();
 
     public void addChild(Type t) {
         children.add(t);
-    }
-
-    public void addConstant() {
-
     }
 
     @JsonIgnore
@@ -92,8 +92,8 @@ public class Type {
                 return;
             default:
                 ConstantField f = new ConstantField();
-                f.setField(name, (ConstantFieldType) ft);
-                constants.add(f);
+                f.setField(name, ft);
+                constants.put(name, f);
         }
 
     }

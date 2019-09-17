@@ -1,13 +1,16 @@
 package com.axway.gw.es.model.type;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vordel.es.FieldType;
 
 public class Field {
+	@JsonIgnore
 	public String name; 
 	public String type; 
 	private String defaultValue;
-	public String cardinality = "1";
-	public boolean isKey = false;
+
+	public String cardinality;
+	public boolean isKey;
 
 	public String getDefault() {
 		return defaultValue;

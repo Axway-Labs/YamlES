@@ -8,8 +8,6 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Properties;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreFactory;
 import org.slf4j.Logger;
@@ -48,7 +46,7 @@ public class ConvertToYamlStore {
 
 	public void dumpTypesAsYaml(String location) throws IOException {
 		LOGGER.info("Dumping types to " + location);
-		typeManager.writeBaseType(new File(location));
+		typeManager.writeTypes(new File(location + "/META-INF"));
 		//typeManager.writeTypes(new File(location));
 	}
 	
@@ -65,7 +63,7 @@ public class ConvertToYamlStore {
 			System.exit(1);
 		}
 		ES_TO_LOAD = args[0];
-		String whereToWriteTypes = args[1] + "/.types";
+		String whereToWriteTypes = args[1];
 		String whereToWriteEntities = args[1] + "/";
 		try {
 			ConvertToYamlStore converter = new ConvertToYamlStore(ES_TO_LOAD, new Properties());

@@ -41,23 +41,23 @@
 		</plugins>
 	</build>
 	<properties>
-		<slf4jVersion>1.6.1</slf4jVersion>
+		<slf4jVersion>1.7.26</slf4jVersion>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
-			<version>2.3.0</version>
+			<version>2.9.9</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.2.3</version>
+			<version>2.9.9.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.4</version>
+			<version>3.9</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.el/el-api -->
 		<dependency>
@@ -80,7 +80,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>19.0</version>
+			<version>27.1-jre</version>
 		</dependency>
 		<!-- SLFJ4 -->
 		<!--Binding for log4j version 1.2.x You also need to place log4j.jar on

@@ -1,8 +1,10 @@
 package com.axway.gw.es.model.type;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vordel.es.ConstantFieldType;
 
 public class ConstantField {
+	@JsonIgnore
 	public String name; 
 	public String type; 
 	public String value;

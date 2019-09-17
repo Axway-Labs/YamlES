@@ -1,42 +1,25 @@
 package com.axway.gw.es.yaml;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.axway.gw.es.model.type.Type;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.vordel.common.xml.XmlTransformerCache;
+import com.vordel.es.*;
+import com.vordel.es.impl.BuilderFactory;
+import com.vordel.es.impl.ConstantField;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import com.axway.gw.es.model.type.Child;
-import com.axway.gw.es.model.type.Type;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.vordel.common.xml.XmlTransformerCache;
-import com.vordel.es.ConstantFieldType;
-import com.vordel.es.ESPK;
-import com.vordel.es.EntityStoreException;
-import com.vordel.es.EntityType;
-import com.vordel.es.Field;
-import com.vordel.es.FieldType;
-import com.vordel.es.Value;
-import com.vordel.es.impl.BuilderFactory;
-import com.vordel.es.impl.ConstantField;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class YamlEntityType implements EntityType {
 	// name of the type
@@ -86,21 +69,25 @@ public class YamlEntityType implements EntityType {
 		YamlEntityType type = new YamlEntityType();
 		type.isAbstract = t.isAbstract;
 		// constants
-		for (com.axway.gw.es.model.type.ConstantField constant : t.constants) {
+		for (Map.Entry<String, com.axway.gw.es.model.type.ConstantField> entry : t.constants.entrySet()) {
+			com.axway.gw.es.model.type.ConstantField constant = entry.getValue();
+			constant.name = entry.getKey();
 			ConstantFieldType cft = new ConstantFieldTypeInner(constant.type, new Value(constant.value));
 			ConstantField field = new ConstantField(cft, constant.name);
 			type.constants.put(constant.name, field); 
 		}
 		// fields 
-		for (com.axway.gw.es.model.type.Field field : t.fields) {
+		for (Map.Entry<String, com.axway.gw.es.model.type.Field> entry : t.fields.entrySet()) {
+			com.axway.gw.es.model.type.Field field = entry.getValue();
+			field.name = entry.getKey();
 			FieldType ft = new FieldTypeInner(field.type, field.cardinality, new ArrayList<Value>());
 			type.fieldTypes.put(field.name, ft);
 			if (field.isKey) 
 				type.keyFieldNames.add(field.name);
 		}
 		// components
-		for (Child child : t.component) {
-			type.componentTypes.put(child.name, child.cardinality);
+		for (Map.Entry<String, String> entry : t.components.entrySet()) {
+			type.componentTypes.put(entry.getKey(), entry.getValue());
 		}
 		return type;
 	}
