@@ -1,6 +1,5 @@
 package com.axway.gw.es.tools;
 
-import com.axway.gw.es.model.type.Type;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -12,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -60,8 +57,8 @@ public class EntityManager {
     private com.axway.gw.es.model.entity.Entity yamlize(Entity value, boolean allowChildren) {
         LOGGER.debug("Yamlize " + value.getPK());
         com.axway.gw.es.model.entity.Entity ye = new com.axway.gw.es.model.entity.Entity();
-        //ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
-        ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
+        ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
+        //ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
         // deal with pk for this entity
         ye.key = getPath(value.getPK());
         // ye.parentType = value.getParentPK() == null? null : getTypePath(getEntity(value.getParentPK()).getType());
@@ -205,24 +202,43 @@ public class EntityManager {
                 File f = new File(filename);
                 f.getParentFile().mkdirs();
 
-                if (ye.meta.type.endsWith("Script")) {
-                    String extension = ye.fields.get("engineName");
-                    String script = ye.fields.remove("script");
-                    String fileName = ye.name + "." + extension;
-                    Files.write(f.getParentFile().toPath().resolve(fileName), script.getBytes());
-                    ye.fields.put("script", "file:" + fileName);
-                } else if (ye.meta.type.endsWith("Stylesheet")) {
-                    String contents = ye.fields.remove("contents");
-                    Path fileName = f.getParentFile().toPath().resolve(ye.fields.get("URL") + ".xsl");
-                    Files.write(fileName, Base64.getDecoder().decode(contents.replace("\n", "")));
-                    ye.fields.put("contents", "file:" + fileName);
-                }
+                extractContent(ye, f);
 
                 mapper.writeValue(f, ye);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write file", e);
         }
+    }
+
+    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File f) throws IOException {
+        switch (ye.meta.type) {
+            case "Script":
+                extractContent(ye, f, ye.name + "." + ye.fields.get("engineName"), "script", false);
+                break;
+            case "Stylesheet":
+                extractContent(ye, f, ye.fields.get("URL") + ".xsl", "contents", true);
+                break;
+            case "Certificate":
+                extractContent(ye, f, f.getName().replace(".yaml", ".pem"), "key", true);
+                extractContent(ye, f, f.getName().replace(".yaml", ".crt"), "content", true);
+                break;
+        }
+    }
+
+    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File f, String fileName, String field, boolean base64Decode) throws IOException {
+        String content = ye.fields.remove(field);
+        if (content == null) {
+            return;
+        }
+        byte[] data;
+        if (base64Decode) {
+            data = Base64.getDecoder().decode(content.replaceAll("[\r?\n]", ""));
+        } else {
+            data = content.getBytes();
+        }
+        Files.write(f.getParentFile().toPath().resolve(fileName), data);
+        ye.fields.put(field, "file:" + fileName);
     }
 
     private void setFields(Entity value, com.axway.gw.es.model.entity.Entity ye) {
@@ -313,7 +329,7 @@ public class EntityManager {
             if (i < keyNames.length - 1)
                 b.append("$");
         }
-        return b.toString().trim();
+        return b.toString().replaceAll("/", "").trim();
     }
 
     /**
