@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class Entity {
 
@@ -21,8 +22,6 @@ public class Entity {
 
     @JsonIgnore
     public boolean allowsChildren = false;
-    @JsonIgnore
-    public String keyFieldValues;
 
 
     public void addFval(String key, String value) {
@@ -74,7 +73,7 @@ public class Entity {
                 break;
             default:
                 if (fields == null) {
-                    fields = new LinkedHashMap<>();
+                    fields = new TreeMap<>();
                 }
                 String previous = fields.put(key, value);
                 if (previous != null) {

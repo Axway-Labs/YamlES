@@ -45,6 +45,10 @@ public class TypeManager {
         mapper.writeValue(out, baseType);
     }
 
+    public Map<String, Type> getTypes() {
+        return types;
+    }
+
     private Type loadTypes(EntityType t) {
         Type type = loadType(t);
         for (String typename : es.getSubtypes(t.getName())) {
@@ -61,23 +65,17 @@ public class TypeManager {
     }
 
     private Type getType(String typeName) {
-        if (types.containsKey(typeName))
-            return types.get(typeName);
         EntityType type = es.getTypeForName(typeName);
         Type t = createType(type);
-        types.put(typeName, t);
+        Type old = types.put(typeName, t);
+        if (old != null) {
+            throw new IllegalArgumentException("Type reuse not supported: " + old.name);
+        }
         return t;
     }
 
     private Type createType(EntityType et) {
         Type t = new Type(et.getName());
-        if (et.getSuperType() != null) {
-            t.parent = et.getSuperType().getName();
-            //Type parent = getType(et.getSuperType().getName());
-            //if (parent != null)
-            //	parent.addChild(t);
-            t.setPathToRoot(et);
-        }
         t.isAbstract = et.isAbstract();
         // fields
         Collection<String> keyFields = et.getAllDeclaredKeyFields();

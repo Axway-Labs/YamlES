@@ -1,5 +1,6 @@
 package com.axway.gw.es.tools;
 
+import com.axway.gw.es.model.type.Type;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -25,9 +26,11 @@ public class EntityManager {
     private List<com.axway.gw.es.model.entity.Entity> mappedEntities = new ArrayList<>();
     private Set<ESPK> inlined = new HashSet<>();
     private EntityStore es;
+    private Map<String, Type> types;
 
-    public EntityManager(EntityStore es) {
+    public EntityManager(EntityStore es, Map<String, Type> types) {
         this.es = es;
+        this.types = types;
         this.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         ESPK root = es.getRootPK();
         loadEntities(root);
@@ -221,7 +224,7 @@ public class EntityManager {
         File dir = f.getParentFile();
         switch (ye.meta.type) {
             case "JavaScriptFilter":
-                 dir = new File(f.getAbsolutePath().replace(".yaml", "-Scripts"));
+                dir = new File(f.getAbsolutePath().replace(".yaml", "-Scripts"));
                 extractContent(ye, dir, sanitizeFilename(ye.name) + "." + ye.fields.get("engineName"), "script", false);
                 break;
             case "Script":
@@ -237,7 +240,9 @@ public class EntityManager {
             case "ResourceBlob":
                 String type = ye.fields.get("type");
                 switch (type) {
-                    case "schema": type = "xsd"; break;
+                    case "schema":
+                        type = "xsd";
+                        break;
                 }
 
                 extractContent(ye, dir, ye.fields.get("ID") + "." + type, "content", true);
@@ -269,8 +274,10 @@ public class EntityManager {
         for (com.vordel.es.Field f : allFields) {
             com.vordel.es.FieldType ft = f.getType();
             if (!refs.contains(f)) { // not a reference
-                ye.addFval(f.getName(), value.getStringValue(f.getName()));
-                ye.keyFieldValues = getKeyValues(value);
+                String fval = value.getStringValue(f.getName());
+                if (!types.get(ye.meta.type).isDefaultValue(f.getName(), fval)) {
+                    ye.addFval(f.getName(), fval);
+                }
             }
         }
     }
