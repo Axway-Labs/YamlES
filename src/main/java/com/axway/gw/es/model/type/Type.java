@@ -24,6 +24,7 @@ public class Type {
 
     @JsonIgnore
     public String apiVersion = "http://www.vordel.com/2005/06/24/entityStore";
+    @JsonIgnore
     public String parent;
     @JsonIgnore
     public boolean isAbstract = false;

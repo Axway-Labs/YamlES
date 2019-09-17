@@ -137,9 +137,9 @@ public class TypeManager {
 		Type t = new Type(et.getName());
 		if (et.getSuperType() != null) {
 			t.parent = et.getSuperType().getName();
-			Type parent = getType(et.getSuperType().getName());
-			if (parent != null)
-				parent.addChild(t);
+			//Type parent = getType(et.getSuperType().getName());
+			//if (parent != null)
+			//	parent.addChild(t);
 			t.setPathToRoot(et);
 		}
 		t.isAbstract = et.isAbstract();
