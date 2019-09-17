@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Name: API Manager configuration (Environment)
+Description: API Manager configuration added from Policy Studio (Envir
+ onment)
+
