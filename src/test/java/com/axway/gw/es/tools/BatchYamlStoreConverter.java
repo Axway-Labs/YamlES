@@ -18,10 +18,10 @@ public class BatchYamlStoreConverter {
         convert("TeamDevelopmentSettings");
         convert("TeamDevelopmentSettingsAPIM");
 
-        clearSimilar("FactoryTemplate");
-        clearSimilar("FactoryTemplateSamples");
-        clearSimilar("TeamDevelopmentSettings");
-        clearSimilar("TeamDevelopmentSettingsAPIM");
+//        clearSimilar("FactoryTemplate");
+//        clearSimilar("FactoryTemplateSamples");
+//        clearSimilar("TeamDevelopmentSettings");
+//        clearSimilar("TeamDevelopmentSettingsAPIM");
     }
 
     private static void clearSimilar(String project) throws IOException {

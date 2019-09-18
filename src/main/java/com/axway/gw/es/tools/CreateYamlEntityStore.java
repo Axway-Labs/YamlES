@@ -1,10 +1,12 @@
-package com.axway.gw.es.yaml;
+package com.axway.gw.es.tools;
+
+import com.axway.gw.es.yaml.YamlEntityStore;
 
 import java.util.Properties;
 
-public class Main {
+public class CreateYamlEntityStore {
 	
-	private static final String WHERE_TO_LOAD = "yaml:file:/tmp/simpleyamlstore";
+	private static final String WHERE_TO_LOAD = "yaml:file:/tmp/yamlstores/TeamDevelopmentAPI";
 	//private static final String WHERE_TO_LOAD = "yaml:file:/home/jamie/hackathon-dc/fed";
 	public static void main(String[] args) {
 		try {

@@ -199,7 +199,7 @@ public class EntityManager {
         try {
             if (ye.allowsChildren) { // handle as directory with metadata
                 out.mkdirs();
-                mapper.writeValue(new File(out, "metadata-" + ye.meta.type.substring(ye.meta.type.lastIndexOf('/') + 1) + ".yaml"), ye);
+                mapper.writeValue(new File(out, "metadata.yaml"), ye);
             } else { // handle as file
                 String filename = out.getPath() + ".yaml";
                 File f = new File(filename);
@@ -225,10 +225,10 @@ public class EntityManager {
         switch (ye.meta.type) {
             case "JavaScriptFilter":
                 dir = new File(f.getAbsolutePath().replace(".yaml", "-Scripts"));
-                extractContent(ye, dir, sanitizeFilename(ye.name) + "." + ye.fields.get("engineName"), "script", false);
+                extractContent(ye, dir, sanitizeFilename(ye.getKeyDescription()) + "." + ye.fields.get("engineName"), "script", false);
                 break;
             case "Script":
-                extractContent(ye, dir, ye.name + "." + ye.fields.get("engineName"), "script", false);
+                extractContent(ye, dir, ye.getKeyDescription() + "." + ye.fields.get("engineName"), "script", false);
                 break;
             case "Stylesheet":
                 extractContent(ye, dir, ye.fields.get("URL") + ".xsl", "contents", true);

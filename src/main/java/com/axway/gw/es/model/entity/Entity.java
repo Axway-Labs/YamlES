@@ -11,8 +11,6 @@ public class Entity {
     @JsonIgnore
     public String key;
 
-    public String name;
-
     public Meta meta = new Meta();
     public Map<String, String> fields;
     public Routing routing;
@@ -26,9 +24,6 @@ public class Entity {
 
     public void addFval(String key, String value) {
         switch (key) {
-            case "name":
-                name = value;
-                break;
             case "class":
                 // skip meta._class = value;
                 break;
@@ -99,6 +94,17 @@ public class Entity {
             children = new LinkedHashMap<>();
         }
         children.put(ychild.key.substring(key.length() + 1), ychild);
+    }
+
+
+    @JsonIgnore
+    public String getKeyDescription() {
+        // TODO generate something with key values if name is not the default
+        String name = "[?]";
+        if (fields != null) {
+            name = fields.get("name");
+        }
+        return name;
     }
 
 

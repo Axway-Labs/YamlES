@@ -2,12 +2,8 @@ package com.axway.gw.es.model.type;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.ConstantFieldType;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,6 +33,13 @@ public class Type {
     public Map<String, String> components = new LinkedHashMap<>();
     private List<Type> children = new ArrayList<>();
 
+    public Type() {
+    }
+
+    public Type(String name) {
+        this.name = name;
+    }
+
     public void addChild(Type t) {
         children.add(t);
         t.parent = this;
@@ -49,10 +52,6 @@ public class Type {
 
     public List<Type> getChildren() {
         return children;
-    }
-
-    public Type(String name) {
-        this.name = name;
     }
 
     public void addConstant(String name, ConstantFieldType ft) {
