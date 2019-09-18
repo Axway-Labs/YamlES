@@ -89,4 +89,9 @@ public class Type {
             return false;
         }
     }
+
+    public String getDefaultValue(String fieldName) {
+        Field field = fields.get(fieldName);
+        return field.defaultValue;
+    }
 }

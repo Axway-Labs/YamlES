@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -31,6 +32,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private File rootLocation = null;
     private ESPK root;
+
+    private Map<String, Type> types = new HashMap<>();
 
     private IndexedEntityTree entities = new IndexedEntityTree();
 
@@ -93,6 +96,9 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             parentPK = entity.getPK();
         }
 
+        if (dir.toString().contains("Certificate Store")) {
+            System.out.println("YamlEntityStore.loadEntities");
+        }
         File[] files = dir.listFiles();
         for (File file : files) {
             if (file.toString().endsWith("metadata.yaml") || file.toString().endsWith("META-INF")) {
@@ -111,20 +117,23 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private Entity createEntity(File file, ESPK parentPK) throws IOException {
         com.axway.gw.es.model.entity.Entity yEntity = mapper.readValue(file, com.axway.gw.es.model.entity.Entity.class);
-        Entity entity = EntityFactory.convert(yEntity, parentPK, this);
-        entities.add(parentPK, entity);
+        File dir = file.getParentFile();
+
+        Entity entity = createEntity(yEntity, parentPK, dir);
 
         if (yEntity.children != null) {
             for (Map.Entry<String, com.axway.gw.es.model.entity.Entity> entry : yEntity.children.entrySet()) {
-                createEntity(entry.getKey(), entry.getValue(), entity.getPK());
+                createEntity(entry.getValue(), entity.getPK(), dir);
             }
         }
         return entity;
     }
 
-    private void createEntity(String name, com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK) {
-        Entity entity = EntityFactory.convert(yEntity, parentPK, this);
+    private Entity createEntity(com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK, File dir) throws IOException {
+        yEntity.meta.yType = types.get(yEntity.meta.type);
+        Entity entity = EntityFactory.convert(yEntity, parentPK, this, dir);
         entities.add(parentPK, entity);
+        return entity;
     }
 
     private Entity createParentEntity(File dir, ESPK parentPK) throws IOException {
@@ -147,6 +156,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     private YamlEntityType loadType(Type yType, YamlEntityType parent) throws EntityStoreException {
+        types.put(yType.name, yType);
         YamlEntityType type = YamlEntityType.convert(yType);
         type.setSuperType(parent);
         addType(type);

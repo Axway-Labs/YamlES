@@ -6,7 +6,8 @@ import java.util.Properties;
 
 public class CreateYamlEntityStore {
 	
-	private static final String WHERE_TO_LOAD = "yaml:file:/tmp/yamlstores/TeamDevelopmentAPI";
+	//private static final String WHERE_TO_LOAD = "yaml:file:/tmp/yamlstores/TeamDevelopmentAPI";
+	private static final String WHERE_TO_LOAD = "yaml:file:/tmp/yamlstores/FactoryTemplateSamples";
 	//private static final String WHERE_TO_LOAD = "yaml:file:/home/jamie/hackathon-dc/fed";
 	public static void main(String[] args) {
 		try {

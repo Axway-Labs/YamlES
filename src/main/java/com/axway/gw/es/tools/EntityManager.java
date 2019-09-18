@@ -61,6 +61,7 @@ public class EntityManager {
         LOGGER.debug("Yamlize " + value.getPK());
         com.axway.gw.es.model.entity.Entity ye = new com.axway.gw.es.model.entity.Entity();
         ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
+        ye.meta.yType = types.get(ye.meta.type);
         //ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
         // deal with pk for this entity
         ye.key = getPath(value.getPK());
@@ -224,8 +225,8 @@ public class EntityManager {
         File dir = f.getParentFile();
         switch (ye.meta.type) {
             case "JavaScriptFilter":
-                dir = new File(f.getAbsolutePath().replace(".yaml", "-Scripts"));
-                extractContent(ye, dir, sanitizeFilename(ye.getKeyDescription()) + "." + ye.fields.get("engineName"), "script", false);
+                String fileName = f.getName().replace(".yaml", "-Scripts/") + sanitizeFilename(ye.getKeyDescription()) + "." + ye.getFieldValue("engineName");
+                extractContent(ye, dir, fileName,"script", false);
                 break;
             case "Script":
                 extractContent(ye, dir, ye.getKeyDescription() + "." + ye.fields.get("engineName"), "script", false);
@@ -251,21 +252,26 @@ public class EntityManager {
     }
 
     private void extractContent(com.axway.gw.es.model.entity.Entity ye, File dir, String fileName, String field, boolean base64Decode) throws IOException {
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
         String content = ye.fields.remove(field);
         if (content == null) {
             return;
         }
+
         byte[] data;
         if (base64Decode) {
             data = Base64.getDecoder().decode(content.replaceAll("[\r?\n]", ""));
         } else {
             data = content.getBytes();
         }
-        Files.write(dir.toPath().resolve(fileName), data);
-        ye.fields.put(field, "file:" + fileName);
+
+        Path path = dir.toPath().resolve(fileName);
+        File parentDir = path.getParent().toFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdir();
+        }
+        Files.write(path, data);
+
+        ye.fields.put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
     private void setFields(Entity value, com.axway.gw.es.model.entity.Entity ye) {

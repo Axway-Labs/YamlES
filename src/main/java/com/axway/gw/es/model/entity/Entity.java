@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class Entity {
 
@@ -99,14 +100,24 @@ public class Entity {
 
     @JsonIgnore
     public String getKeyDescription() {
-        // TODO generate something with key values if name is not the default
-        String name = "[?]";
-        if (fields != null) {
-            name = fields.get("name");
-        }
-        return name;
+        String keyDescription = meta.yType.fields.values()
+                .stream()
+                .filter(f -> f.isKey)
+                .map(keyField -> getFieldValue(keyField.name))
+                .collect(Collectors.joining("$"));
+        return keyDescription.isEmpty() ? meta.type : keyDescription;
     }
 
+    @JsonIgnore
+    public String getFieldValue(String fieldName) {
+        if (fields != null) {
+            String value = fields.get(fieldName);
+            if (value != null) {
+                return value;
+            }
+        }
+        return meta.yType.getDefaultValue(fieldName);
+    }
 
 
 }

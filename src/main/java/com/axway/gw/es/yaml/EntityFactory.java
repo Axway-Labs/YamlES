@@ -5,7 +5,12 @@ import com.vordel.es.Entity;
 import com.vordel.es.EntityType;
 import com.vordel.es.FieldType;
 import com.vordel.es.Value;
+import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.Map;
 
 public class EntityFactory {
@@ -24,29 +29,43 @@ public class EntityFactory {
         }
     }
 
-    public static Entity convert(com.axway.gw.es.model.entity.Entity e, ESPK parentPK, YamlEntityStore es) {
-        EntityType type = es.getTypeForName(e.meta.type);
+    public static Entity convert(com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK, YamlEntityStore es, File dir) throws IOException {
+        EntityType type = es.getTypeForName(yEntity.meta.type);
         MyEntity entity = new MyEntity(type);
 
-        if (e.fields != null) {
+        if (yEntity.fields != null) {
 
             // fields
-            for (Map.Entry<String, String> field : e.fields.entrySet()) {
-                if (!type.isConstantField(field.getKey())) { // don't set constants
-                    FieldType ft = type.getFieldType(field.getKey());
-                    if (ft.isRefType() || ft.isSoftRefType())
-                        entity.setReferenceField(field.getKey(), new YamlPK(field.getValue()));
-                    else  // set the value
-                        entity.setField(field.getKey(), new Value[]{new Value(field.getValue())});
+            for (Map.Entry<String, String> field : yEntity.fields.entrySet()) {
+                if (type.isConstantField(field.getKey())) {
+                    continue; // don't set constants
+                }
+
+                String fieldName = StringUtils.substringBefore(field.getKey(), "#");
+
+                FieldType ft = type.getFieldType(fieldName);
+                if (ft.isRefType() || ft.isSoftRefType()) {
+                    entity.setReferenceField(fieldName, new YamlPK(field.getValue()));
+                } else {
+                    String content = field.getValue();
+                    if (field.getKey().contains("#ref")) {
+                        byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
+                        if (field.getKey().endsWith("#refbase64")) {
+                            content = Base64.getEncoder().encodeToString(data);
+                        } else {
+                            content = new String(data);
+                        }
+                    }
+                    entity.setField(fieldName, new Value[]{new Value(content)});
                 }
             }
         }
 
         // pk
-        ESPK pk = parentPK == null ? new YamlPK(e.getKeyDescription()) : new YamlPK(parentPK, e.getKeyDescription());
+        ESPK pk = parentPK == null ? new YamlPK(yEntity.getKeyDescription()) : new YamlPK(parentPK, yEntity.getKeyDescription());
         entity.setPK(pk);
         // parent pk
-        //ESPK parentPK = new YamlPK(e.parent);
+        //ESPK parentPK = new YamlPK(yEntity.parent);
         entity.setParentPK(parentPK);
         return entity;
     }
