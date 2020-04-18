@@ -1019,3 +1019,5 @@ fabric.properties
 /*.txt
 /robots.txt.dist
 
+.classpath
+.project
