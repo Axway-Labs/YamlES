@@ -23,8 +23,8 @@ if es.hasType(options.typeName):
 
 ## What is the Yaml Entity-Store?
 Since the Entity Store is an interface with an implementation that is currently based on XML files, it can be replaced. 
-This project has the goal to replace the XML file based entity store with a Yaml file based implementation. Of course not to create a series of large yaml files, but the following structure:
-[Yaml Entity-Store structure](misc/images/yaml-es-folder-structure.png)
+This project has the goal to replace the XML file based entity store with a Yaml file based implementation. Of course not to create a series of large yaml files, but the following structure:  
+![Yaml Entity-Store structure](misc/images/yaml-es-folder-structure.png)
 
 
 ## Setup and Configuration
