@@ -1,9 +1,9 @@
 # YAML Entity Store
 
 The Policy Configuration Set (called FED), as used today by the Axway API Gateway and modified by Policy Studio, is based on a set of very large XML files.
-These XML files cannot be modified outside of Policy Studio, and it is not possible to validate and approve changes in a team using, for example the [GitFlow](https://blog.axosoft.com/pull-requests-gitflow/).
+These XML files cannot be modified outside of Policy Studio. Therefore it is not possible to validate, approve and finally merge changes into the Master-Branch. Lean how the [GitFlow](https://blog.axosoft.com/pull-requests-gitflow/) works and is used by larger teams to maintain/control software changes.  
 
-##Entity Store
+## Entity Store
 The Entity Store is the interface for any component of Axway API management to read and write the policy configuration set. This means that the API gateway, Policy Studio, Node-Management and each phyton script does not access the XML files directly, instead using a clearly defined interface. 
 
 ### Example usage of the Entity-Store
@@ -24,8 +24,52 @@ if es.hasType(options.typeName):
 ## What is the Yaml Entity-Store?
 Since the Entity Store is an interface with an implementation that is currently based on XML files, it can be replaced. 
 This project has the goal to replace the XML file based entity store with a Yaml file based implementation. Of course not to create a series of large yaml files, but the following structure:  
-![Yaml Entity-Store structure](misc/images/yaml-es-folder-structure.png)
+![Yaml Entity-Store structure](misc/images/yaml-es-folder-structure.png)  
+Each policy is now managed in an human readable Yaml file. For the instance the well know Health-Check policy:  
+```yaml
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  name: "Health Check"
+  start: "Set Message"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Reflect:
+    meta:
+      type: "Reflector"
+      _version: "0"
+    fields:
+      name: "Reflect"
+    logging:
+      logFatal: "Error occurred while echoing the message. Error: ${circuit.exception}"
+      logFailure: "Failed to echo back the message"
+      logSuccess: "Successfully echoed back the message"
+      category: "System/Filter Categories/miscellaneous"
+  Set Message:
+    meta:
+      type: "ChangeMessageFilter"
+      _version: "0"
+    fields:
+      body: "<status>ok</status>"
+      name: "Set Message"
+      outputContentType: "text/xml"
+    routing:
+      successNode: "Policies/Policy Library/Health Check/Reflect"
+    logging:
+      logFatal: "Error in setting the message. Error: ${circuit.exception}"
+      logFailure: "Failed in setting the message"
+      logSuccess: "Success in setting the message"
+      category: "System/Filter Categories/miscellaneous"
 
+```
+With that, changes to policies, Javascript-Code, etc. becomes Human-Readable and can be managed using Pull-Requests, etc.  
+The ultimate goal:
+- Allow all components to read and write using the Yaml-Entitystore
+  - this includes Policy-Studio to work on the Yaml-Entity store
+- Using native appropriate file-types. e.g. Python-Script --> scriptA.py, etc.
 
 ## Setup and Configuration
 In order to compile and create a package this project has some dependencies which are not public available, but part of the API-Gateway installation. 
