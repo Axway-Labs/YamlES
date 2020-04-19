@@ -10,6 +10,9 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        apigateway-version: [7.7.20200331, 7.7.20200130, 7.7.0]
 
     steps:
     - uses: actions/checkout@v2
@@ -17,5 +20,5 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+    - name: Creating YamlES for API-Gateway version: ${{ matrix.apigateway-version }}
+      run: mvn package "-Dapigateway.version=${{ matrix.apigateway-version }}"

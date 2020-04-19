@@ -7,6 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<slf4jVersion>1.7.26</slf4jVersion>
+		<apigateway.version>7.7.20200331</apigateway.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -126,20 +127,15 @@
 		<dependency>
 			<groupId>es-core</groupId>
 			<artifactId>es-core</artifactId>
-			<version>7.7.20200331</version>
+			<version>${apigateway.version}</version>
 		</dependency>
 
 		<!-- Local dependency to apigw-common-7.x.x-x.jar -->
 		<dependency>
 			<groupId>apigw-common</groupId>
 			<artifactId>apigw-common</artifactId>
-			<version>7.7.20200331</version>
+			<version>${apigateway.version}</version>
 		</dependency>
-
-		<!-- <dependency> <groupId>com.vordel.archive</groupId> <artifactId>fed-archive</artifactId> 
-			<scope>system</scope> <systemPath>c:/tmp/Axway/com/vordel/archive/fed-archive/7.7.0-4/fed-archive-7.7.0-4.jar</systemPath> 
-			</dependency> -->
-
 	</dependencies>
 </project>
 
