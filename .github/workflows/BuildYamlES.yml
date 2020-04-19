@@ -20,5 +20,5 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: Creating YamlES for API-Gateway version: ${{ matrix.apigateway-version }}
+    - name: "YamlES version: ${{ matrix.apigateway-version }}"
       run: mvn package "-Dapigateway.version=${{ matrix.apigateway-version }}"
