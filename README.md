@@ -83,7 +83,7 @@ To build a local package please execute:
 
 ### Unit tests
 
-[] ToDo
+* [ ] ToDo
 
 ### Integration tests 
 Integration tests are automatically executed as part of the CI pipeline. You can run them manually with the following command:

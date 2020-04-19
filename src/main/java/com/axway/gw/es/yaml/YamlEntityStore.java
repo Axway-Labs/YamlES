@@ -115,7 +115,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return parentPK;
     }
 
-    private Entity createEntity(File file, ESPK parentPK) throws IOException {
+    Entity createEntity(File file, ESPK parentPK) throws IOException {
         com.axway.gw.es.model.entity.Entity yEntity = mapper.readValue(file, com.axway.gw.es.model.entity.Entity.class);
         File dir = file.getParentFile();
 
