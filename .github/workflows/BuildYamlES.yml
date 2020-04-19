@@ -15,7 +15,8 @@ jobs:
         apigateway-version: [7.7.20200331, 7.7.20200130, 7.7.0]
 
     steps:
-    - uses: actions/cache@v1
+    - name: Cache Maven dependencies
+      uses: actions/cache@v1
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
