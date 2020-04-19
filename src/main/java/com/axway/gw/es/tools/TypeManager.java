@@ -60,7 +60,7 @@ public class TypeManager {
     }
 
     private Type loadType(EntityType t) {
-        LOGGER.info("Loading type:  " + t.getName());
+        LOGGER.debug("Loading type:  " + t.getName());
 		return getType(t.getName());
     }
 
