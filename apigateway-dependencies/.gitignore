@@ -1,0 +1,2 @@
+# Include JAR for the Maven-Repo files used as a local repository
+!*.jar
