@@ -21,4 +21,4 @@ jobs:
       with:
         java-version: 1.8
     - name: "YamlES version: ${{ matrix.apigateway-version }}"
-      run: mvn package "-Dapigateway.version=${{ matrix.apigateway-version }}"
+      run: mvn -B package "-Dapigateway.version=${{ matrix.apigateway-version }}"
