@@ -1,3 +1,5 @@
+![Build YamlES](https://github.com/axwayhackathon/YamlES/workflows/Build%20YamlES/badge.svg)
+
 # YAML Entity Store
 
 The Policy Configuration Set (called FED), as used today by the Axway API Gateway and modified by Policy Studio, is based on a set of very large XML files.
