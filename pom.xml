@@ -11,7 +11,7 @@
 	<repositories>
 		<repository>
 			<id>local-maven-repo</id>
-			<url>file:////home/runner/work/YamlES/apigateway-dependencies/</url>
+			<url>file:///${project.basedir}/apigateway-dependencies</url>
 		</repository>
 	</repositories>
 
