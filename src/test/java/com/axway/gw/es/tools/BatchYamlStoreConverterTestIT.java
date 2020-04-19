@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
-public class BatchYamlStoreConverterTest {
+public class BatchYamlStoreConverterTestIT {
 
     /**
      * Main method to call test manually.
@@ -43,7 +43,7 @@ public class BatchYamlStoreConverterTest {
 	}
 
     private static void convert(String project) throws InterruptedException, IOException {
-        String file = BatchYamlStoreConverterTest.class.getResource("/apiprojects/" + project + "/configs.xml").getFile();
+        String file = BatchYamlStoreConverterTestIT.class.getResource("/apiprojects/" + project + "/configs.xml").getFile();
 
         ConvertToYamlStore.convert("federated:file:" + file, "/tmp/yamlstores/" + project);
     }

@@ -80,10 +80,18 @@ To build a local package please execute:
 ```
 
 ## Test
-Tests are automatically executed as part of the CI pipeline. You can run them manually with the following command:  
+
+### Unit tests
+
+[] ToDo
+
+### Integration tests 
+Integration tests are automatically executed as part of the CI pipeline. You can run them manually with the following command:
+  
 ```java
-    mvn test
+    mvn verify
 ```
+
 ## Using the Converter
 After you have built your local package you can use it to convert the between the Entity-Store versions with the following commands. 
 
