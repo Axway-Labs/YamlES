@@ -1,4 +1,4 @@
-![Build YamlES](https://github.com/axwayhackathon/YamlES/workflows/Build%20YamlES/badge.svg)
+[![Build YamlES](https://github.com/axwayhackathon/YamlES/workflows/Build%20YamlES/badge.svg)](https://github.com/axwayhackathon/YamlES/actions)
 
 # YAML Entity Store
 
