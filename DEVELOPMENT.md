@@ -17,7 +17,7 @@ To setup the project for Eclipse:
 
 com.vordel.rcp.policystudio_7.7.0.v20200331-1131.jar
 system\conf\esproviders.xml
-
+```xml
 <?xml version = "1.0" encoding = "UTF-8"?>
 <!--
   Configuration file for the Entity Store factory.
@@ -38,3 +38,4 @@ system\conf\esproviders.xml
     <LoadClass name="com.axway.gw.es.yaml.YamlEntityStoreProvider"/>
   </providers>
 </entityStore>
+```
