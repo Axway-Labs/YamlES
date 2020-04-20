@@ -2,6 +2,9 @@ package com.axway.gw.es.yaml;
 
 import com.vordel.es.ESPK;
 
+/**
+ * EntityStore primary key implementation for Yaml
+ */
 public class YamlPK implements com.vordel.es.ESPK {
 
     private final String location;
