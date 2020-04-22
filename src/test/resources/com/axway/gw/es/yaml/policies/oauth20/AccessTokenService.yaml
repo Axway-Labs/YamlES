@@ -1,0 +1,83 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  description: ""
+  name: "Access Token Service"
+  start: "Decide what grant type to use"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Decide what grant type to use:
+    meta:
+      type: "SwitchFilter"
+      _version: "4"
+    fields:
+      attributeName: "${content.body.getParameters().get(\"grant_type\")}"
+      defaultCircuit: "Policies/Policy Library/Return HTTP Error 401_ Unauthorized"
+      name: "Decide what grant type to use"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+    children:
+      Id-0001340660962253-0000000023c88300-2:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/Access Code"
+          comparatorType: "is"
+          compareWith: "authorization_code"
+          name: "Id-0001340660962253-0000000023c88300-2"
+          priority: "1"
+      Id-0001340660962253-0000000023c88300-4:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/Resource Owner Password\
+            \ Credentials"
+          comparatorType: "is"
+          compareWith: "password"
+          name: "Id-0001340660962253-0000000023c88300-4"
+          priority: "1"
+      Id-0001340660962253-0000000023c88300-3:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/Client Credentials"
+          comparatorType: "is"
+          compareWith: "client_credentials"
+          name: "Id-0001340660962253-0000000023c88300-3"
+          priority: "1"
+      Id-0001340660819595-0000000038480ba3-1:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/JWT"
+          comparatorType: "is"
+          compareWith: "urn:ietf:params:oauth:grant-type:jwt-bearer"
+          name: "Id-0001340660819595-0000000038480ba3-1"
+          priority: "0"
+      Id-0001386691053525-000000003910f87e-1:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/SAML"
+          comparatorType: "is"
+          compareWith: "urn:ietf:params:oauth:grant-type:saml2-bearer"
+          name: "Id-0001386691053525-000000003910f87e-1"
+          priority: "5"
+      Id-0001340660962253-0000000023c88300-1:
+        meta:
+          type: "SwitchCircuitReference"
+          _version: "1"
+        fields:
+          circuitPK: "Policies/OAuth 2.0/Access Token Service/Refresh"
+          comparatorType: "is"
+          compareWith: "refresh_token"
+          name: "Id-0001340660962253-0000000023c88300-1"
+          priority: "1"

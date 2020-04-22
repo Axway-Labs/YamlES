@@ -1,0 +1,22 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  description: ""
+  name: "Refresh"
+  start: "Refresh Access token"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Refresh Access token:
+    meta:
+      type: "RefreshingAccessTokenFilter"
+      _version: "0"
+    fields:
+      locationOfClientDetails: "QueryString"
+      name: "Refresh Access token"
+      tokenStore: "Libraries/OAuth2 Stores/Access Token Stores/OAuth Access Token\
+        \ Store"
+    logging:
+      category: "System/Filter Categories/miscellaneous"

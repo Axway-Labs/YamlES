@@ -1,0 +1,25 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  description: ""
+  name: "SAML"
+  start: "Access token using SAML Assertion"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Access token using SAML Assertion:
+    meta:
+      type: "SAMLBearerAssertionGrantFilter"
+      _version: "0"
+    fields:
+      circuitPK: "Policies/OAuth 2.0/Access Token Service/Verify SAML Signature"
+      driftTime: "60"
+      name: "Access token using SAML Assertion"
+      refreshChoice: "NoRefresh"
+      requiredAudience: "https://127.0.0.1:8089/api/oauth/token"
+      tokenStore: "Libraries/OAuth2 Stores/Access Token Stores/OAuth Access Token\
+        \ Store"
+    logging:
+      category: "System/Filter Categories/miscellaneous"

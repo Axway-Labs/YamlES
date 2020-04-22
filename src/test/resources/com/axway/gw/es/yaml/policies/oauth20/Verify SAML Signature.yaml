@@ -1,0 +1,32 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  description: ""
+  name: "Verify SAML Signature"
+  start: "XML Signature Verification"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  XML Signature Verification:
+    meta:
+      type: "IntegrityVerifySignatureFilter"
+      _version: "9"
+    fields:
+      actor: ""
+      algorithmSuite: ""
+      certAttribute: "${oauth.client.details.getX509Cert()}"
+      name: "XML Signature Verification"
+      sigLocation: "Resources/XPath Definitions/Signature Locations/First Signature\
+        \ in First SAML Assertion (SAML 2.0)"
+      sigPosition: "1"
+      signedContent: "Resources/XPath Definitions/Signing XPaths/The First SAML 2.0\
+        \ assertion"
+      sourceAttribute: "${oauth.saml.doc}"
+      verifyForAuthentication: "1"
+    logging:
+      logFatal: "Integrity: Signature verification error. Error: ${circuit.exception}"
+      logFailure: "Integrity: Signature verification failed"
+      logSuccess: "Integrity: Signature verification passed"
+      category: "System/Filter Categories/content-filtering"
