@@ -1,8 +1,8 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.type.ConstantFieldDTO;
-import com.axway.gw.es.model.type.FieldDTO;
-import com.axway.gw.es.model.type.TypeDTO;
+import com.axway.gw.es.yaml.model.type.ConstantFieldDTO;
+import com.axway.gw.es.yaml.model.type.FieldDTO;
+import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vordel.common.xml.XmlTransformerCache;
 import com.vordel.es.*;

@@ -1,7 +1,7 @@
-package com.axway.gw.es.tools;
+package com.axway.gw.es.yaml.tools;
 
-import com.axway.gw.es.model.type.FieldDTO;
-import com.axway.gw.es.model.type.TypeDTO;
+import com.axway.gw.es.yaml.model.type.FieldDTO;
+import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

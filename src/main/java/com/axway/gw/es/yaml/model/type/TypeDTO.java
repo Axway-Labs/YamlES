@@ -1,4 +1,4 @@
-package com.axway.gw.es.model.type;
+package com.axway.gw.es.yaml.model.type;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;

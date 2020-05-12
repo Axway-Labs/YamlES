@@ -1,4 +1,4 @@
-package com.axway.gw.es.tools;
+package com.axway.gw.es.yaml.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

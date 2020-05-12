@@ -1,7 +1,7 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.entity.EntityDTO;
-import com.axway.gw.es.model.type.TypeDTO;
+import com.axway.gw.es.yaml.model.entity.EntityDTO;
+import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.*;

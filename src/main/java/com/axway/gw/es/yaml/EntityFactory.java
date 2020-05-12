@@ -1,6 +1,6 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.entity.EntityDTO;
+import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
 import com.vordel.es.EntityType;

@@ -1,6 +1,6 @@
-package com.axway.gw.es.model.entity;
+package com.axway.gw.es.yaml.model.entity;
 
-import com.axway.gw.es.model.type.TypeDTO;
+import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
