@@ -16,13 +16,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Properties;
 
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
@@ -41,15 +40,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private Map<String, TypeDTO> types = new LinkedHashMap<>();
 
     private IndexedEntityTree entities = new IndexedEntityTree();
-
-    public YamlEntityStore() {
-        // TODO make it public in es-core
-        try {
-            getChildrenMethod(entities).setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * Connect to an entity store.
@@ -280,7 +270,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      */
     @Override
     public Collection<ESPK> findChildren(ESPK parentId, Field[] reqFields, EntityType type) {
-        Collection<Entity> children = getChildren(entities, parentId);
+        Collection<Entity> children = entities.getChildren(parentId);
         ESPKCollection resList = new ESPKCollection(children.size());
         for (Entity e : children) {
             if (type == null || type.isAncestorOfType(e.getType())) {
@@ -297,19 +287,9 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
 
-    private Collection<Entity> getChildren(IndexedEntityTree entities, ESPK parentId) {
-        //TODO remove that in favor of public version of getChildren
-        try {
-            return (Collection<Entity>) getChildrenMethod(entities).invoke(entities, parentId);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    private Method getChildrenMethod(IndexedEntityTree entities) throws NoSuchMethodException {
-        checkNotNull(entities);
-        return entities.getClass().getDeclaredMethod("getChildren", ESPK.class);
-    }
+
+
 
 
     /**
