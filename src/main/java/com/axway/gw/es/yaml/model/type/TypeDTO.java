@@ -9,18 +9,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.*;
+
 public class TypeDTO {
 
-    private static final String apiVersion = "http://www.vordel.com/2005/06/24/entityStore";
+    private static final String API_VERSION = "http://www.vordel.com/2005/06/24/entityStore";
 
     private String name;
 
     private Integer version;
 
-    @JsonProperty("class")
+    @JsonProperty(CLASS)
     private String clazz;
 
-    @JsonProperty("loadorder")
+    @JsonProperty(LOAD_ORDER)
     private Integer loadOrder;
 
     @JsonIgnore
@@ -35,6 +37,7 @@ public class TypeDTO {
     private List<TypeDTO> children = new ArrayList<>();
 
     public TypeDTO() {
+        // for parsers
     }
 
     public TypeDTO(String name) {
@@ -48,7 +51,7 @@ public class TypeDTO {
 
     @JsonIgnore
     public boolean hasChild() {
-        return children.size() > 0;
+        return !children.isEmpty();
     }
 
     public List<TypeDTO> getChildren() {
@@ -57,13 +60,13 @@ public class TypeDTO {
 
     public void addConstant(String name, ConstantFieldType ft) {
         switch (name) {
-            case "_version":
+            case VERSION:
                 version = Integer.parseInt(ft.getDefaultValues().get(0).getData());
                 return;
-            case "class":
+            case CLASS:
                 clazz = ft.getDefaultValues().get(0).getData();
                 return;
-            case "loadorder":
+            case LOAD_ORDER:
                 loadOrder = Integer.parseInt(ft.getDefaultValues().get(0).getData());
                 return;
             default:
@@ -72,19 +75,20 @@ public class TypeDTO {
         }
     }
 
-    public boolean isDefaultValue(String fieldName, String fval) {
+    public boolean isDefaultValue(String fieldName, String fieldValue) {
         FieldDTO field = fields.get(fieldName);
         if (field == null && parent != null) {
-            return parent.isDefaultValue(fieldName, fval);
+            return parent.isDefaultValue(fieldName, fieldValue);
         } else if (field != null) {
             if ("boolean".equals(field.getType())) {
-                switch (fval) {
-                    case "0" : fval = "false"; break;
-                    case "1" : fval = "true"; break;
+                switch (fieldValue) {
+                    case "0" : fieldValue = "false"; break;
+                    case "1" : fieldValue = "true"; break;
+                    default:
                 }
             }
             String defaultValue = field.getDefaultValue();
-            return defaultValue != null && defaultValue.equals(fval);
+            return defaultValue != null && defaultValue.equals(fieldValue);
         } else {
             return false;
         }
@@ -132,7 +136,7 @@ public class TypeDTO {
     }
 
     public String getApiVersion() {
-        return apiVersion;
+        return API_VERSION;
     }
 
     public TypeDTO getParent() {

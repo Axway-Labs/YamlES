@@ -16,6 +16,10 @@ import java.util.Map;
 
 public class EntityFactory {
 
+    private EntityFactory() {
+        // no op
+    }
+
     private static class YamlStoreEntity extends Entity {
         public YamlStoreEntity(EntityType type) {
             super(type);
@@ -42,32 +46,35 @@ public class EntityFactory {
                     continue; // don't set constants
                 }
 
-                String fieldName = StringUtils.substringBefore(fieldEntry.getKey(), "#");
-
-                FieldType ft = type.getFieldType(fieldName);
-                if (ft.isRefType() || ft.isSoftRefType()) {
-                    entity.setReferenceField(fieldName, new YamlPK(fieldEntry.getValue()));
-                } else {
-                    String content = fieldEntry.getValue();
-                    if (fieldEntry.getKey().contains("#ref")) {
-                        byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
-                        if (fieldEntry.getKey().endsWith("#refbase64")) {
-                            content = Base64.getEncoder().encodeToString(data);
-                        } else {
-                            content = new String(data);
-                        }
-                    }
-                    entity.setField(fieldName, new Value[]{new Value(content)});
-                }
+                processField(dir, type, entity, fieldEntry.getKey(), fieldEntry.getValue());
             }
         }
 
         // pk
         ESPK pk = parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
         entity.setPK(pk);
-        // parent pk
-        //ESPK parentPK = new YamlPK(yEntity.parent);
+
         entity.setParentPK(parentPK);
         return entity;
+    }
+
+    private static void processField(File dir, EntityType type, YamlStoreEntity entity, String rawFieldName, String fieldValue) throws IOException {
+        String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+
+        FieldType ft = type.getFieldType(fieldName);
+        if (ft.isRefType() || ft.isSoftRefType()) {
+            entity.setReferenceField(fieldName, new YamlPK(fieldValue));
+        } else {
+            String content = fieldValue;
+            if (rawFieldName.contains("#ref")) {
+                byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
+                if (rawFieldName.endsWith("#refbase64")) {
+                    content = Base64.getEncoder().encodeToString(data);
+                } else {
+                    content = new String(data);
+                }
+            }
+            entity.setField(fieldName, new Value[]{new Value(content)});
+        }
     }
 }

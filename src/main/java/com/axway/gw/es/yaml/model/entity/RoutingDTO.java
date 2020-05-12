@@ -4,6 +4,9 @@ import java.util.Objects;
 
 public class RoutingDTO {
 
+    public static final String SUCCESS_NODE = "successNode";
+    public static final String FAILURE_NODE = "failureNode";
+
     private String successNode;
     private String failureNode;
 

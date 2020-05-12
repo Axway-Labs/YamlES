@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.CLASS;
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.VERSION;
+
 public class MetaDTO {
 
     private String type;
@@ -13,10 +16,10 @@ public class MetaDTO {
     @JsonIgnore
     private TypeDTO typeDTO;
 
-    @JsonProperty("class")
-    private String impl;
+    @JsonProperty(CLASS)
+    private String clazz;
 
-    @JsonProperty("_version")
+    @JsonProperty(VERSION)
     private String version;
 
     public String getType() {
@@ -37,12 +40,12 @@ public class MetaDTO {
         return this;
     }
 
-    public String getImpl() {
-        return impl;
+    public String getClazz() {
+        return clazz;
     }
 
-    public MetaDTO setImpl(String impl) {
-        this.impl = impl;
+    public MetaDTO setClazz(String clazz) {
+        this.clazz = clazz;
         return this;
     }
 
@@ -62,12 +65,12 @@ public class MetaDTO {
         MetaDTO metaDTO = (MetaDTO) o;
         return Objects.equals(type, metaDTO.type) &&
                 Objects.equals(typeDTO, metaDTO.typeDTO) &&
-                Objects.equals(impl, metaDTO.impl) &&
+                Objects.equals(clazz, metaDTO.clazz) &&
                 Objects.equals(version, metaDTO.version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, typeDTO, impl, version);
+        return Objects.hash(type, typeDTO, clazz, version);
     }
 }

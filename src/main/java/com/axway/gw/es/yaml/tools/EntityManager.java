@@ -2,9 +2,6 @@ package com.axway.gw.es.yaml.tools;
 
 import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.*;
 import com.vordel.es.xes.PortableESPK;
 import org.slf4j.Logger;
@@ -17,22 +14,121 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings({"WeakerAccess", "ResultOfMethodCallIgnored"})
+import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class EntityManager {
-    private final static Logger LOGGER = LoggerFactory.getLogger(EntityManager.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityManager.class);
 
-    private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    public static final String POLICIES = "Policies";
+    public static final String APIS = "APIs";
+    public static final String RESOURCES = "Resources";
+    public static final String ENVIRONMENT_CONFIGURATION = "Environment Configuration";
+    public static final String LIBRARIES = "Libraries";
+    public static final String EXTERNAL_CONNECTIONS = "External Connections";
+    public static final String SERVER_SETTINGS = "Server Settings";
 
-    private Map<ESPK, Entity> entities = new ConcurrentHashMap<>();
-    private List<EntityDTO> mappedEntities = new ArrayList<>();
-    private Set<ESPK> inlined = new HashSet<>();
-    private EntityStore es;
-    private Map<String, TypeDTO> types;
+
+    public static final String YAML_EXTENSION = ".yaml";
+
+    private static final Map<String, String> ENTITIES_CATEGORIES = new HashMap<>();
+    public static final String DEFAULT_CATEGORY = "System";
+    public static final String METADATA_FILENAME = "metadata.yaml";
+
+    static {
+        ENTITIES_CATEGORIES.put("FilterCircuit", POLICIES);
+        ENTITIES_CATEGORIES.put("CircuitContainer", POLICIES);
+        ENTITIES_CATEGORIES.put("WebServiceGroup", APIS);
+        ENTITIES_CATEGORIES.put("WebServiceRepository", APIS);
+
+        ENTITIES_CATEGORIES.put("JSONSchemaGroup", RESOURCES);
+        ENTITIES_CATEGORIES.put("ScriptGroup", RESOURCES);
+        ENTITIES_CATEGORIES.put("StylesheetGroup", RESOURCES);
+        ENTITIES_CATEGORIES.put("XmlSchemaGroup", RESOURCES);
+        ENTITIES_CATEGORIES.put("XPathGroup", RESOURCES);
+        ENTITIES_CATEGORIES.put("ResourceRepository", RESOURCES);
+
+        ENTITIES_CATEGORIES.put("KPSRoot", ENVIRONMENT_CONFIGURATION);
+        ENTITIES_CATEGORIES.put("EnvironmentalizedEntities", ENVIRONMENT_CONFIGURATION);
+        ENTITIES_CATEGORIES.put("Certificates", ENVIRONMENT_CONFIGURATION);
+        ENTITIES_CATEGORIES.put("PGPKeyPairs", ENVIRONMENT_CONFIGURATION);
+        ENTITIES_CATEGORIES.put("NetService", ENVIRONMENT_CONFIGURATION);
+        ENTITIES_CATEGORIES.put("UserStore", ENVIRONMENT_CONFIGURATION);
+
+        ENTITIES_CATEGORIES.put("CacheManager", LIBRARIES);
+        ENTITIES_CATEGORIES.put("AlertManager", LIBRARIES);
+        ENTITIES_CATEGORIES.put("RegularExpressionGroup", LIBRARIES);
+        ENTITIES_CATEGORIES.put("OAuth2StoresGroup", LIBRARIES);
+        ENTITIES_CATEGORIES.put("CronExpressionGroup", LIBRARIES);
+        ENTITIES_CATEGORIES.put("CORSGroup", LIBRARIES);
+        ENTITIES_CATEGORIES.put("WAFProfileGroup", LIBRARIES);
+
+        ENTITIES_CATEGORIES.put("AWSSettings", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("AuthnRepositoryGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("ConnectionSetGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("AuthProfilesGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("DbConnectionGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("ICAPServerGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("JMSServiceGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("LdapDirectoryGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("ProxyServerGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("SentinelServerGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("SiteMinderConnectionSet", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("SMTPServerGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("SyslogServerGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("RendezvousDaemonGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("UrlSetGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("XkmsConfigGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("RadiusClients", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("SunAccessManagerSettings", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("PassPortKeyStoreManager", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("TivoliActionGroupGroup", EXTERNAL_CONNECTIONS);
+        ENTITIES_CATEGORIES.put("TivoliSettingsGroup", EXTERNAL_CONNECTIONS);
+
+        ENTITIES_CATEGORIES.put("AccessLogger", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("CassandraSettings", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("EventLog", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("LogManager", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("RealtimeMonitoring", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("PortalCallbackGroup", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("MimeTypeGroup", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("OPDbConfig", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("SystemSettings", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("OpenTrafficEventLog", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("PortalConfiguration", SERVER_SETTINGS);
+        ENTITIES_CATEGORIES.put("ZeroDowntime", SERVER_SETTINGS);
+    }
+
+    private static final Set<String> EXPANDED_TYPES = new HashSet<>(Arrays.asList("KPSRoot"));
+    private static final Set<String> INLINED_TYPES = new HashSet<>(Arrays.asList(
+            "User", // Entity/Identity
+            "FilterCircuit", // Entity/RootChild
+            "EnvironmentalizedEntity", // Entity
+            "MetricGroupTypes", // Entity
+            "MetricTypes", // Entity
+            "CategoryGroup", // Entity/RootChild/NamedTopLevelGroup
+            "Internationalization", // Entity/RootChild/NamedTopLevelGroup
+            "HTTPRetryStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
+            "HTTPStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
+            "PolicyCategoryGroup", // Entity/RootChild/NamedTopLevelGroup
+            "RegistryCategorizationSchemeGroup", // Entity/RootChild/NamedTopLevelGroup
+            "ElementSpecifiers", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "MimeTypeGroup", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "NamespacesConfiguration", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "TokenFinderSet", // Entity/RootChild/LoadableModule/NamedLoadableModule
+            "ParserFeatureGroup" // Entity/RootChild/LoadableModule/NativeModule
+    ));
+
+
+    private final Map<ESPK, Entity> entities = new ConcurrentHashMap<>();
+    private final List<EntityDTO> mappedEntities = new ArrayList<>();
+    private final Set<ESPK> inlined = new HashSet<>();
+    private final EntityStore es;
+    private final Map<String, TypeDTO> types;
 
     public EntityManager(EntityStore es, Map<String, TypeDTO> types) {
         this.es = es;
         this.types = types;
-        this.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         ESPK root = es.getRootPK();
         loadEntities(root);
     }
@@ -44,13 +140,6 @@ public class EntityManager {
         // must provide dir
         if (!dir.isDirectory())
             throw new IOException("Must provide a directory for YAML output");
-      /*  for (Map.Entry<ESPK, Entity> entry : entities.entrySet()) {
-            if (!entry.getValue().getType().getName().equals("InternationalizationCategory")) {
-                LOGGER.info("Dumping type " + entry.getKey());
-                com.axway.gw.es.model.entity.Entity e = yamlize(dir, entry.getValue());
-                //writeType(dir, t);
-            }
-        }*/
 
         for (EntityDTO ye : mappedEntities) {
             // deal with pk for parent  entity
@@ -59,14 +148,12 @@ public class EntityManager {
     }
 
     private EntityDTO yamlize(Entity value, boolean allowChildren) {
-        LOGGER.debug("Yamlize " + value.getPK());
+        LOGGER.debug("Yamlize {}", value.getPK());
         EntityDTO ye = new EntityDTO();
         ye.getMeta().setType(value.getType().getName()); // may want to change this to the directory location of the type?
         ye.getMeta().setTypeDTO(types.get(ye.getMeta().getType()));
-        //ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
         // deal with pk for this entity
         ye.setKey(getPath(value.getPK()));
-        // ye.parentType = value.getParentPK() == null? null : getTypePath(getEntity(value.getParentPK()).getType());
         // children?
         ye.setAllowsChildren(allowChildren && isAllowsChildren(value));
         // fields
@@ -87,173 +174,83 @@ public class EntityManager {
         return ye;
     }
 
-    public static final Map<String, String> TOPLEVEL = new HashMap<>();
-
-    {
-        TOPLEVEL.put("FilterCircuit", "Policies");
-        TOPLEVEL.put("CircuitContainer", "Policies");
-        TOPLEVEL.put("WebServiceGroup", "APIs");
-        TOPLEVEL.put("WebServiceRepository", "APIs");
-
-        TOPLEVEL.put("JSONSchemaGroup", "Resources");
-        TOPLEVEL.put("ScriptGroup", "Resources");
-        TOPLEVEL.put("StylesheetGroup", "Resources");
-        TOPLEVEL.put("XmlSchemaGroup", "Resources");
-        TOPLEVEL.put("XPathGroup", "Resources");
-        TOPLEVEL.put("ResourceRepository", "Resources");
-
-        TOPLEVEL.put("KPSRoot", "Environment Configuration");
-        TOPLEVEL.put("EnvironmentalizedEntities", "Environment Configuration");
-        TOPLEVEL.put("Certificates", "Environment Configuration");
-        TOPLEVEL.put("PGPKeyPairs", "Environment Configuration");
-        TOPLEVEL.put("NetService", "Environment Configuration");
-        TOPLEVEL.put("UserStore", "Environment Configuration");
-
-        TOPLEVEL.put("CacheManager", "Libraries");
-        TOPLEVEL.put("AlertManager", "Libraries");
-        TOPLEVEL.put("RegularExpressionGroup", "Libraries");
-        TOPLEVEL.put("OAuth2StoresGroup", "Libraries");
-        TOPLEVEL.put("CronExpressionGroup", "Libraries");
-        TOPLEVEL.put("CORSGroup", "Libraries");
-        TOPLEVEL.put("WAFProfileGroup", "Libraries");
-
-        TOPLEVEL.put("AWSSettings", "External Connections");
-        TOPLEVEL.put("AuthnRepositoryGroup", "External Connections");
-        TOPLEVEL.put("ConnectionSetGroup", "External Connections");
-        TOPLEVEL.put("AuthProfilesGroup", "External Connections");
-        TOPLEVEL.put("DbConnectionGroup", "External Connections");
-        TOPLEVEL.put("ICAPServerGroup", "External Connections");
-        TOPLEVEL.put("JMSServiceGroup", "External Connections");
-        TOPLEVEL.put("LdapDirectoryGroup", "External Connections");
-        TOPLEVEL.put("ProxyServerGroup", "External Connections");
-        TOPLEVEL.put("SentinelServerGroup", "External Connections");
-        TOPLEVEL.put("SiteMinderConnectionSet", "External Connections");
-        TOPLEVEL.put("SMTPServerGroup", "External Connections");
-        TOPLEVEL.put("SyslogServerGroup", "External Connections");
-        TOPLEVEL.put("RendezvousDaemonGroup", "External Connections");
-        TOPLEVEL.put("UrlSetGroup", "External Connections");
-        TOPLEVEL.put("XkmsConfigGroup", "External Connections");
-        TOPLEVEL.put("RadiusClients", "External Connections");
-        TOPLEVEL.put("SunAccessManagerSettings", "External Connections");
-        TOPLEVEL.put("PassPortKeyStoreManager", "External Connections");
-        TOPLEVEL.put("TivoliActionGroupGroup", "External Connections");
-        TOPLEVEL.put("TivoliSettingsGroup", "External Connections");
-
-        TOPLEVEL.put("AccessLogger", "Server Settings");
-        TOPLEVEL.put("CassandraSettings", "Server Settings");
-        TOPLEVEL.put("EventLog", "Server Settings");
-        TOPLEVEL.put("LogManager", "Server Settings");
-        TOPLEVEL.put("RealtimeMonitoring", "Server Settings");
-        TOPLEVEL.put("PortalCallbackGroup", "Server Settings");
-        TOPLEVEL.put("MimeTypeGroup", "Server Settings");
-        TOPLEVEL.put("OPDbConfig", "Server Settings");
-        TOPLEVEL.put("SystemSettings", "Server Settings");
-        TOPLEVEL.put("OpenTrafficEventLog", "Server Settings");
-        TOPLEVEL.put("PortalConfiguration", "Server Settings");
-        TOPLEVEL.put("ZeroDowntime", "Server Settings");
-    }
 
     private String getTopLevel(EntityType type) {
-        String topLevel = TOPLEVEL.get(type.getName());
-        return topLevel == null ? "System" : topLevel;
+        String topLevel = ENTITIES_CATEGORIES.get(type.getName());
+        return topLevel == null ? DEFAULT_CATEGORY : topLevel;
     }
 
-    private String getTypePath(EntityType type) {
-        if (type.getSuperType() == null) {
-            return type.getName();
-        }
-        return getTypePath(type.getSuperType()) + "/" + type;
-    }
-
-
-    private static final Set<String> EXPANDED = new HashSet<>(Arrays.asList("KPSRoot"));
-    private static final Set<String> INLINED = new HashSet<>(Arrays.asList(
-            "User", // Entity/Identity
-            "FilterCircuit", // Entity/RootChild
-            "EnvironmentalizedEntity", // Entity
-            "MetricGroupTypes", // Entity
-            "MetricTypes", // Entity
-            "CategoryGroup", // Entity/RootChild/NamedTopLevelGroup
-            "Internationalization", // Entity/RootChild/NamedTopLevelGroup
-            "HTTPRetryStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
-            "HTTPStatusClassGroup", // Entity/RootChild/NamedTopLevelGroup
-            "PolicyCategoryGroup", // Entity/RootChild/NamedTopLevelGroup
-            "RegistryCategorizationSchemeGroup", // Entity/RootChild/NamedTopLevelGroup
-            "ElementSpecifiers", // Entity/RootChild/LoadableModule/NamedLoadableModule
-            "MimeTypeGroup", // Entity/RootChild/LoadableModule/NamedLoadableModule
-            "NamespacesConfiguration", // Entity/RootChild/LoadableModule/NamedLoadableModule
-            "TokenFinderSet", // Entity/RootChild/LoadableModule/NamedLoadableModule
-            "ParserFeatureGroup" // Entity/RootChild/LoadableModule/NativeModule
-    ));
 
     private boolean isAllowsChildren(Entity value) {
-        return value.getType().allowsChildEntities() && !INLINED.contains(value.getType().getName())
-                && (value.getType().extendsType("NamedLoadableModule")
-                || EXPANDED.contains(value.getType().getName())
-                || !value.getType().extendsType("NamedGroup")
-                && !value.getType().extendsType("LoadableModule")
-                && !value.getType().extendsType("Filter")
-                && !value.getType().extendsType("KPSStore")
-                && !value.getType().extendsType("KPSType"));
+        return value.getType().allowsChildEntities()
+                && !INLINED_TYPES.contains(value.getType().getName())
+                &&
+                (value.getType().extendsType("NamedLoadableModule")
+                        || EXPANDED_TYPES.contains(value.getType().getName())
+                        || !value.getType().extendsType("NamedGroup")
+                        && !value.getType().extendsType("LoadableModule")
+                        && !value.getType().extendsType("Filter")
+                        && !value.getType().extendsType("KPSStore")
+                        && !value.getType().extendsType("KPSType")
+                );
     }
 
-    private void dumpAsYaml(File out, EntityDTO ye) {
-        try {
-            if (ye.isAllowsChildren()) { // handle as directory with metadata
-                out.mkdirs();
-                mapper.writeValue(new File(out, "metadata.yaml"), ye);
-            } else { // handle as file
-                String filename = out.getPath() + ".yaml";
-                File f = new File(filename);
-                f.getParentFile().mkdirs();
+    private void dumpAsYaml(File out, EntityDTO entityDTO) throws IOException {
 
-                extractContent(ye, f);
+        if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
+            out.mkdirs();
+            YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
+        } else { // handle as file
+            String filename = out.getPath() + YAML_EXTENSION;
+            File f = new File(filename);
+            f.getParentFile().mkdirs();
 
-                mapper.writeValue(f, ye);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to write file", e);
+            extractContent(entityDTO, f);
+
+            YAML_MAPPER.writeValue(f, entityDTO);
         }
+
     }
 
-    private void extractContent(EntityDTO ye, File f) throws IOException {
-        if (ye.getChildren() != null) {
-            for (EntityDTO yChild : ye.getChildren().values()) {
-                extractContent(yChild, f);
+    private void extractContent(EntityDTO entityDTO, File file) throws IOException {
+        if (entityDTO.getChildren() != null) {
+            for (EntityDTO yChild : entityDTO.getChildren().values()) {
+                extractContent(yChild, file);
             }
         }
 
-        File dir = f.getParentFile();
-        switch (ye.getMeta().getType()) {
+        File dir = file.getParentFile();
+        final String metaType = entityDTO.getMeta().getType();
+
+        switch (metaType) {
             case "JavaScriptFilter":
-                String fileName = f.getName().replace(".yaml", "-Scripts/") + sanitizeFilename(ye.getKeyDescription()) + "." + ye.getFieldValue("engineName");
-                extractContent(ye, dir, fileName,"script", false);
+                String fileName = file.getName().replace(YAML_EXTENSION, "-Scripts/") + sanitizeFilename(entityDTO.getKeyDescription()) + "." + entityDTO.getFieldValue("engineName");
+                extractContent(entityDTO, dir, fileName, "script", false);
                 break;
             case "Script":
-                extractContent(ye, dir, ye.getKeyDescription() + "." + ye.getFields().get("engineName"), "script", false);
+                extractContent(entityDTO, dir, entityDTO.getKeyDescription() + "." + entityDTO.getFields().get("engineName"), "script", false);
                 break;
             case "Stylesheet":
-                extractContent(ye, dir, ye.getFields().get("URL") + ".xsl", "contents", true);
+                extractContent(entityDTO, dir, entityDTO.getFields().get("URL") + ".xsl", "contents", true);
                 break;
             case "Certificate":
-                extractContent(ye, dir, f.getName().replace(".yaml", ".pem"), "key", true);
-                extractContent(ye, dir, f.getName().replace(".yaml", ".crt"), "content", true);
+                extractContent(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".pem"), "key", true);
+                extractContent(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".crt"), "content", true);
                 break;
             case "ResourceBlob":
-                String type = ye.getFields().get("type");
-                switch (type) {
-                    case "schema":
-                        type = "xsd";
-                        break;
+                String type = entityDTO.getFields().get("type");
+                if (Objects.equals(type, "schema")) {
+                    type = "xsd";
                 }
-
-                extractContent(ye, dir, ye.getFields().get("ID") + "." + type, "content", true);
+                extractContent(entityDTO, dir, entityDTO.getFields().get("ID") + "." + type, "content", true);
                 break;
+            default:
+                LOGGER.debug("Nothing to extract from type {}", metaType);
         }
     }
 
-    private void extractContent(EntityDTO ye, File dir, String fileName, String field, boolean base64Decode) throws IOException {
-        String content = ye.getFields().remove(field);
+    private void extractContent(EntityDTO entityDTO, File dir, String fileName, String field, boolean base64Decode) throws IOException {
+        String content = entityDTO.getFields().remove(field);
         if (content == null) {
             return;
         }
@@ -272,7 +269,7 @@ public class EntityManager {
         }
         Files.write(path, data);
 
-        ye.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
+        entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
     private void setFields(Entity value, EntityDTO ye) {
@@ -282,7 +279,7 @@ public class EntityManager {
             if (!refs.contains(f)) { // not a reference
                 String fval = value.getStringValue(f.getName());
                 if (!types.get(ye.getMeta().getType()).isDefaultValue(f.getName(), fval)) {
-                    ye.addFval(f.getName(), fval);
+                    ye.addFieldValue(f.getName(), fval);
                 }
             }
         }
@@ -293,7 +290,7 @@ public class EntityManager {
             final PortableESPK portableKey = (PortableESPK) pk;
             final boolean isLateBound = "_lateBoundReference".equals(portableKey.getTypeNameOfReferencedEntity());
             if (isLateBound) {
-                LOGGER.info("Late bound reference to " + portableKey.terse() + " expected at run-time");
+                LOGGER.info("Late bound reference to {}, expected at run-time", LOGGER.isInfoEnabled() ? portableKey.terse() : "");
             }
             return isLateBound;
         }
@@ -315,20 +312,17 @@ public class EntityManager {
                         key = key.substring(ye.getKey().length() + 1);
                     }
                 }
-                ye.addFval(field.getName(), key);
+                ye.addFieldValue(field.getName(), key);
             }
         }
     }
 
-    private String createRelativePath(File base, File path) {
-        return base.toURI().relativize(path.toURI()).getPath();
-    }
 
     private String getPath(ESPK pk) {
         StringBuilder builder = new StringBuilder();
 
         List<Entity> path = pathToRoot(pk);
-        LOGGER.debug("path to root is depth: " + path.size());
+        LOGGER.debug("path to root is depth: {}", path.size());
         for (Entity entity : path) {
             String name = getKeyValues(entity);
             if (builder.length() == 0) {
@@ -338,8 +332,7 @@ public class EntityManager {
                 builder.append('/');
             }
             builder.append(name);
-            //if (!dir.exists() && isAllowsChildren(entity))
-            //  dir.mkdirs();
+
         }
         return builder.toString();
     }
@@ -373,8 +366,7 @@ public class EntityManager {
      * : \ / * ? | < > "
      */
     private String sanitizeFilename(String name) {
-        if (name == null)
-            LOGGER.info("hello");
+        checkNotNull(name);
         return name.trim().replaceAll("[\\/:\"*?<>|]+", "_");
     }
 
@@ -393,28 +385,7 @@ public class EntityManager {
         EntityDTO ye = yamlize(e, true);
         mappedEntities.add(ye);
 
-        //LOGGER.info("Loaded entity:  " + TraceEntity.describeEntity(e));
-        /*List<Entity> path = pathToRoot(pk);
-        LOGGER.info("path to root is depth: " + path.size());
-        Iterator<Entity> it = path.iterator();
-        StringBuilder b = new StringBuilder();
-        while (it.hasNext()) {
-            Entity entity = it.next();
-            String[] keyNames = entity.getType().getKeyFieldNames();
-            Collection<String> keyFieldNames = new HashSet<>();
-            if (keyNames != null) {
-                for (int i = 0; i < keyNames.length; i++) {
-                    com.vordel.es.Field keyField = entity.getField(keyNames[i]);
-                    if (null != keyField) {
-                        keyFieldNames.add(keyField.getName());
-                        b.append(keyField.getValues()[0]);
-                    }
-                    if (i < keyNames.length - 1)
-                        b.append(" ,");
-                }
-            }
-        }
-        LOGGER.info("path to root: " + b.toString());*/
+
     }
 
     public Entity getEntity(ESPK key) {
@@ -436,7 +407,7 @@ public class EntityManager {
                 path.add(0, e);
                 pk = e.getParentPK();
             } catch (EntityStoreException p) {
-                LOGGER.trace("ESPK not found in current ES: " + pk);
+                LOGGER.trace("ESPK not found in current ES: {}", pk);
             }
         }
         return path;

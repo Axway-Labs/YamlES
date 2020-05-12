@@ -7,6 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.CLASS;
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.VERSION;
+
 public class EntityDTO {
 
     @JsonIgnore
@@ -23,47 +26,46 @@ public class EntityDTO {
     private boolean allowsChildren = false;
 
 
-    public void addFval(String key, String value) {
+    public void addFieldValue(String key, String value) {
         switch (key) {
-            case "class":
-                // skip meta._class = value;
+            case CLASS:
                 break;
-            case "_version":
+            case VERSION:
                 meta.setVersion(value);
                 break;
-            case "logMaskType":
+            case LoggingDTO.FIELD_LOG_MASK_TYPE:
                 initLogging();
                 logging.setLogMaskType(value);
                 break;
-            case "logMask":
+            case LoggingDTO.FIELD_LOG_MASK:
                 initLogging();
                 logging.setLogMask(value);
                 break;
-            case "logFatal":
+            case LoggingDTO.FIELD_LOG_FATAL:
                 initLogging();
                 logging.setLogFatal(value);
                 break;
-            case "logFailure":
+            case LoggingDTO.FIELD_LOG_FAILURE:
                 initLogging();
                 logging.setLogFailure(value);
                 break;
-            case "logSuccess":
+            case LoggingDTO.FIELD_LOG_SUCCESS:
                 initLogging();
                 logging.setLogSuccess(value);
                 break;
-            case "abortProcessingOnLogError":
+            case LoggingDTO.FIELD_ABORT_PROCESSING_ON_LOG_ERROR:
                 initLogging();
                 logging.setAbortProcessingOnLogError(value);
                 break;
-            case "category":
+            case LoggingDTO.FIELD_CATEGORY:
                 initLogging();
                 logging.setCategory(value);
                 break;
-            case "successNode":
+            case RoutingDTO.SUCCESS_NODE:
                 initRouting();
                 routing.setSuccessNode(value);
                 break;
-            case "failureNode":
+            case RoutingDTO.FAILURE_NODE:
                 initRouting();
                 routing.setFailureNode(value);
                 break;

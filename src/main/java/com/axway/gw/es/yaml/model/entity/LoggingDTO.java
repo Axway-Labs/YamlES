@@ -4,6 +4,14 @@ import java.util.Objects;
 
 public class LoggingDTO {
 
+    public static final String FIELD_LOG_MASK_TYPE = "logMaskType";
+    public static final String FIELD_LOG_MASK = "logMask";
+    public static final String FIELD_LOG_FATAL = "logFatal";
+    public static final String FIELD_LOG_FAILURE = "logFailure";
+    public static final String FIELD_LOG_SUCCESS = "logSuccess";
+    public static final String FIELD_ABORT_PROCESSING_ON_LOG_ERROR = "abortProcessingOnLogError";
+    public static final String FIELD_CATEGORY = "category";
+
     private String logMaskType;
     private String logMask;
     private String logFatal;

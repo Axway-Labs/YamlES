@@ -6,11 +6,12 @@ import java.util.Collection;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreProvider;
 
+import javax.annotation.Nullable;
+
 public class YamlEntityStoreProvider extends EntityStoreProvider  {
 
-	private static final Collection<String> connectionCredentials = new ArrayList<String>();  
-
 	@Override
+	@Nullable
 	public EntityStore createStoreForURL(String url) {
 		if (url.startsWith("yaml:"))  
 			return new YamlEntityStore();           
@@ -18,9 +19,10 @@ public class YamlEntityStoreProvider extends EntityStoreProvider  {
 	}
 
 	@Override
+	@Nullable
 	public Collection<String> getConnectionCredentialsForURL(String url) {
 		if (url.startsWith("yaml:"))               
-			return connectionCredentials;  
+			return new ArrayList<>();
 		return null;
 	}
 }

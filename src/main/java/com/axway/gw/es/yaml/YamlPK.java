@@ -2,6 +2,8 @@ package com.axway.gw.es.yaml;
 
 import com.vordel.es.ESPK;
 
+import java.util.Objects;
+
 /**
  * EntityStore primary key implementation for Yaml
  */
@@ -21,22 +23,16 @@ public class YamlPK implements com.vordel.es.ESPK {
     }
 
     @Override
-    public int hashCode() {
-        return location.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        YamlPK yamlPK = (YamlPK) o;
+        return location.equals(yamlPK.location);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        YamlPK other = (YamlPK) obj;
-        if (location.equals(other.location))
-            return true;
-        return false;
+    public int hashCode() {
+        return Objects.hash(location);
     }
 
     public String toString() {

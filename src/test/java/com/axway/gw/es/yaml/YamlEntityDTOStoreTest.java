@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.vordel.es.Entity;
 import com.vordel.es.EntityStoreException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class YamlEntityDTOStoreTest {
@@ -35,21 +36,21 @@ public class YamlEntityDTOStoreTest {
     public void loadSinglePolicy() throws IOException {
         File yamlFile = getFileFromClasspath("policies/APIManagerProtectionPolicy.yaml");
         Entity e = es.createEntity(yamlFile, null);
-        Assertions.assertEquals(e.getField("start").getValueList().get(0).toString(), "Disable Monitoring");
+        assertEquals("Disable Monitoring", e.getField("start").getValueList().get(0).toString());
     }
 
     @Test
     public void loadPolicyWithShortCuts() throws IOException {
         File yamlFile = getFileFromClasspath("policies/oauth20/AccessTokenService.yaml");
         Entity e = es.createEntity(yamlFile, null);
-        Assertions.assertEquals(e.getField("start").getValueList().get(0).toString(), "Decide what grant type to use");
+        assertEquals("Decide what grant type to use", e.getField("start").getValueList().get(0).toString());
     }
 
     @Test
     public void loadClientCredentials() throws IOException {
         File yamlFile = getFileFromClasspath("policies/oauth20/Client Credentials.yaml");
         Entity e = es.createEntity(yamlFile, null);
-        Assertions.assertEquals(e.getField("start").getValueList().get(0).toString(), "Access Token using client credentials");
+        assertEquals("Access Token using client credentials", e.getField("start").getValueList().get(0).toString());
     }
 
 

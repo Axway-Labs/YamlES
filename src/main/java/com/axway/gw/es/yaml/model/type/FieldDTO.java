@@ -22,13 +22,13 @@ public class FieldDTO {
 
     public FieldDTO(String name, FieldType fieldType) {
         this.name = name;
-        String type = fieldType.getType();
+        String fieldTypeName = fieldType.getType();
         if (fieldType.isSoftRefType())
-            type = type.replace("^", "@");  // no supporting softrefs in yaml es
-        this.type = type;
+            fieldTypeName = fieldTypeName.replace("^", "@");  // no supporting softrefs in yaml es
+        this.type = fieldTypeName;
         this.cardinality = fieldType.getCardinality().toString();
         this.defaultValue = fieldType.getDefault();
-        if ("boolean".equals(type) && fieldType.getDefault() != null) { // why do types use true/false and entities sometimes 1/0 ?
+        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) { // why do types use true/false and entities sometimes 1/0 ?
 			switch (fieldType.getDefault()) {
 				case "0" : defaultValue = "false"; break;
 				case "1" : defaultValue = "true"; break;

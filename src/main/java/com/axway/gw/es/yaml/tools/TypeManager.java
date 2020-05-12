@@ -2,9 +2,6 @@ package com.axway.gw.es.yaml.tools;
 
 import com.axway.gw.es.yaml.model.type.FieldDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.ConstantFieldType;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityType;
@@ -18,11 +15,13 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressWarnings("WeakerAccess")
+import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
+
+
 public class TypeManager {
     private static final Logger log = LoggerFactory.getLogger(TypeManager.class);
 
-    private final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final String TYPES_FILE = "Types.yaml";
 
     // // types map contains root children of the entitystore
     private final Map<String, TypeDTO> types = new LinkedHashMap<>();
@@ -30,18 +29,15 @@ public class TypeManager {
     private final EntityStore es;
 
     public TypeManager(EntityStore es) {
-        this.YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        this.YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        this.YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
-
         this.es = es;
         EntityType t = es.getBaseType();
         baseType = loadTypes(t);
     }
 
     public void writeTypes(File dir) throws IOException {
-        dir.mkdirs();
-        File out = new File(dir, "Types.yaml");
+        boolean created = dir.mkdirs();
+        if (!created) throw new IOException(dir + " was not created");
+        File out = new File(dir, TYPES_FILE);
         YAML_MAPPER.writeValue(out, baseType);
     }
 
