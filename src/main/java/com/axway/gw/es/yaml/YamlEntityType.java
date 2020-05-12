@@ -1,6 +1,8 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.type.Type;
+import com.axway.gw.es.model.type.ConstantFieldDTO;
+import com.axway.gw.es.model.type.FieldDTO;
+import com.axway.gw.es.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vordel.common.xml.XmlTransformerCache;
 import com.vordel.es.*;
@@ -27,27 +29,27 @@ public class YamlEntityType implements EntityType {
     // This type's parent type, from which this type inherits its schema.
     private YamlEntityType superType;
     // The names of the key fields for this type.
-    private List<String> keyFieldNames = new ArrayList<String>();
+    private final List<String> keyFieldNames = new ArrayList<String>();
     // A local cache of all keys for this type. Will include any keys from the super types.
     private String[] keyNames;
     // A Map of all allowed child Entity types, by name, of an Entity of
     // this type, and the corresponding cardinality of the child count.
-    private Map<String, Object> componentTypes = new HashMap<String, Object>();
+    private final Map<String, Object> componentTypes = new LinkedHashMap<>();
     // A Map of all field definitions for this type.
-    private Map<String, FieldType> fieldTypes = new HashMap<String, FieldType>();
+    private final Map<String, FieldType> fieldTypes = new LinkedHashMap<>();
     // A Map of names to constant fields at this level in the type hierarchy
-    public Map<String, ConstantField> constants = new HashMap<String, ConstantField>();
+    public Map<String, ConstantField> constants = new LinkedHashMap<>();
     // A Set of all fields which have default values
-    private Set<String> defaultedFields = new HashSet<String>();
+    private Set<String> defaultedFields = new LinkedHashSet<>();
     // A Set of all optional fields which have no default values
-    private Set<String> optionalFields = new HashSet<String>();
+    private Set<String> optionalFields = new LinkedHashSet<>();
     // If this type is abstract, then there shouldn't be any instances of
     // this specific type in the EntityStore, only of its subtypes.
-    public boolean isAbstract = false;
+    private boolean _abstract = false;
     // cached encoded xml typedoc
     private byte[] cachedDoc;
 
-    public static YamlEntityType convert(String name, Type t) {
+    public static YamlEntityType convert(String name, TypeDTO t) {
         YamlEntityType type = YamlEntityType.convert(t);
         type.setName(name);
         return type;
@@ -65,37 +67,37 @@ public class YamlEntityType implements EntityType {
         }
     }
 
-    public static YamlEntityType convert(Type yType) {
+    public static YamlEntityType convert(TypeDTO typeDTO) {
         YamlEntityType type = new YamlEntityType();
-        type.isAbstract = yType.isAbstract;
-        type.name = yType.name;
+        type._abstract = typeDTO.isAbstract();
+        type.name = typeDTO.getName();
 
 
-        ConstantField constantField = createConstantField("_version", "integer", yType.version == null ? "0" : Integer.toString(yType.version));
+        ConstantField constantField = createConstantField("_version", "integer", typeDTO.getVersion() == null ? "0" : Integer.toString(typeDTO.getVersion()));
         type.constants.put(constantField.getName(), constantField);
-        constantField = createConstantField("class", "string", yType.clazz);
+        constantField = createConstantField("class", "string", typeDTO.getClazz());
         type.constants.put(constantField.getName(), constantField);
-        constantField = createConstantField("loadorder", "integer", yType.loadorder == null ? "0" : Integer.toString(yType.loadorder));
+        constantField = createConstantField("loadorder", "integer", typeDTO.getLoadOrder() == null ? "0" : Integer.toString(typeDTO.getLoadOrder()));
         type.constants.put(constantField.getName(), constantField);
 
         // constants
-        for (Map.Entry<String, com.axway.gw.es.model.type.ConstantField> entry : yType.constants.entrySet()) {
-            com.axway.gw.es.model.type.ConstantField constant = entry.getValue();
-            constant.name = entry.getKey();
-            ConstantField field = createConstantField(constant.name, constant.type, constant.value);
-            type.constants.put(constant.name, field);
+        for (Map.Entry<String, ConstantFieldDTO> entry : typeDTO.getConstants().entrySet()) {
+            ConstantFieldDTO constant = entry.getValue();
+            constant.setName(entry.getKey());
+            ConstantField field = createConstantField(constant.getName(), constant.getType(), constant.getValue());
+            type.constants.put(constant.getName(), field);
         }
         // fields
-        for (Map.Entry<String, com.axway.gw.es.model.type.Field> entry : yType.fields.entrySet()) {
-            com.axway.gw.es.model.type.Field field = entry.getValue();
-            field.name = entry.getKey();
-            FieldType ft = new FieldTypeInner(field.type, field.cardinality, new ArrayList<>());
-            type.fieldTypes.put(field.name, ft);
-            if (field.isKey)
-                type.keyFieldNames.add(field.name);
+        for (Map.Entry<String, FieldDTO> entry : typeDTO.getFields().entrySet()) {
+            FieldDTO field = entry.getValue();
+            field.setName(entry.getKey());
+            FieldType ft = new FieldTypeInner(field.getType(), field.getCardinality(), new ArrayList<>());
+            type.fieldTypes.put(field.getName(), ft);
+            if (field.isKeyField())
+                type.keyFieldNames.add(field.getName());
         }
         // components
-        for (Map.Entry<String, String> entry : yType.components.entrySet()) {
+        for (Map.Entry<String, String> entry : typeDTO.getComponents().entrySet()) {
             type.componentTypes.put(entry.getKey(), entry.getValue());
         }
         return type;
@@ -393,7 +395,7 @@ public class YamlEntityType implements EntityType {
      */
     @Override
     public boolean isAbstract() {
-        return isAbstract;
+        return _abstract;
     }
 
     @Override
@@ -439,12 +441,11 @@ public class YamlEntityType implements EntityType {
     }
 
     @Override
-    public boolean isKeyField(Field f) {
-        if (keyNames == null)
-            getKeyFieldNames();
-        for (String s : keyNames)
-            if (f.getName().equals(s))
+    public boolean isKeyField(Field field) {
+        for (String fieldName : getKeyFieldNames())
+            if (Objects.equals(field.getName(), fieldName))
                 return true;
+
         return false;
     }
 

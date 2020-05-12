@@ -43,7 +43,7 @@ public class YamlPK implements com.vordel.es.ESPK {
         return location;
     }
 
-    public String getPath() {
+    public String getLocation() {
         return location;
     }
 }

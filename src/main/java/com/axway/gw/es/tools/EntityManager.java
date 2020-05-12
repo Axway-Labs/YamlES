@@ -1,6 +1,7 @@
 package com.axway.gw.es.tools;
 
-import com.axway.gw.es.model.type.Type;
+import com.axway.gw.es.model.entity.EntityDTO;
+import com.axway.gw.es.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -23,12 +24,12 @@ public class EntityManager {
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
     private Map<ESPK, Entity> entities = new ConcurrentHashMap<>();
-    private List<com.axway.gw.es.model.entity.Entity> mappedEntities = new ArrayList<>();
+    private List<EntityDTO> mappedEntities = new ArrayList<>();
     private Set<ESPK> inlined = new HashSet<>();
     private EntityStore es;
-    private Map<String, Type> types;
+    private Map<String, TypeDTO> types;
 
-    public EntityManager(EntityStore es, Map<String, Type> types) {
+    public EntityManager(EntityStore es, Map<String, TypeDTO> types) {
         this.es = es;
         this.types = types;
         this.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -51,35 +52,35 @@ public class EntityManager {
             }
         }*/
 
-        for (com.axway.gw.es.model.entity.Entity ye : mappedEntities) {
+        for (EntityDTO ye : mappedEntities) {
             // deal with pk for parent  entity
-            dumpAsYaml(new File(dir, ye.key), ye);
+            dumpAsYaml(new File(dir, ye.getKey()), ye);
         }
     }
 
-    private com.axway.gw.es.model.entity.Entity yamlize(Entity value, boolean allowChildren) {
+    private EntityDTO yamlize(Entity value, boolean allowChildren) {
         LOGGER.debug("Yamlize " + value.getPK());
-        com.axway.gw.es.model.entity.Entity ye = new com.axway.gw.es.model.entity.Entity();
-        ye.meta.type = value.getType().getName(); // may want to change this to the directory location of the type?
-        ye.meta.yType = types.get(ye.meta.type);
+        EntityDTO ye = new EntityDTO();
+        ye.getMeta().setType(value.getType().getName()); // may want to change this to the directory location of the type?
+        ye.getMeta().setTypeDTO(types.get(ye.getMeta().getType()));
         //ye.meta.type = getTypePath(value.getType()); // may want to change this to the directory location of the type?
         // deal with pk for this entity
-        ye.key = getPath(value.getPK());
+        ye.setKey(getPath(value.getPK()));
         // ye.parentType = value.getParentPK() == null? null : getTypePath(getEntity(value.getParentPK()).getType());
         // children?
-        ye.allowsChildren = allowChildren && isAllowsChildren(value);
+        ye.setAllowsChildren(allowChildren && isAllowsChildren(value));
         // fields
         setFields(value, ye);
         setReferences(value, ye);
 
-        if (!ye.allowsChildren) {
+        if (!ye.isAllowsChildren()) {
             for (ESPK childPK : es.listChildren(value.getPK(), null)) {
                 inlined.add(childPK);
 
                 Entity child = getEntity(childPK);
-                com.axway.gw.es.model.entity.Entity ychild = yamlize(child, false);
+                EntityDTO ychild = yamlize(child, false);
                 ye.addChild(ychild);
-                ychild.key = null;
+                ychild.setKey(null);
             }
         }
 
@@ -196,9 +197,9 @@ public class EntityManager {
                 && !value.getType().extendsType("KPSType"));
     }
 
-    private void dumpAsYaml(File out, com.axway.gw.es.model.entity.Entity ye) {
+    private void dumpAsYaml(File out, EntityDTO ye) {
         try {
-            if (ye.allowsChildren) { // handle as directory with metadata
+            if (ye.isAllowsChildren()) { // handle as directory with metadata
                 out.mkdirs();
                 mapper.writeValue(new File(out, "metadata.yaml"), ye);
             } else { // handle as file
@@ -215,44 +216,44 @@ public class EntityManager {
         }
     }
 
-    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File f) throws IOException {
-        if (ye.children != null) {
-            for (com.axway.gw.es.model.entity.Entity yChild : ye.children.values()) {
+    private void extractContent(EntityDTO ye, File f) throws IOException {
+        if (ye.getChildren() != null) {
+            for (EntityDTO yChild : ye.getChildren().values()) {
                 extractContent(yChild, f);
             }
         }
 
         File dir = f.getParentFile();
-        switch (ye.meta.type) {
+        switch (ye.getMeta().getType()) {
             case "JavaScriptFilter":
                 String fileName = f.getName().replace(".yaml", "-Scripts/") + sanitizeFilename(ye.getKeyDescription()) + "." + ye.getFieldValue("engineName");
                 extractContent(ye, dir, fileName,"script", false);
                 break;
             case "Script":
-                extractContent(ye, dir, ye.getKeyDescription() + "." + ye.fields.get("engineName"), "script", false);
+                extractContent(ye, dir, ye.getKeyDescription() + "." + ye.getFields().get("engineName"), "script", false);
                 break;
             case "Stylesheet":
-                extractContent(ye, dir, ye.fields.get("URL") + ".xsl", "contents", true);
+                extractContent(ye, dir, ye.getFields().get("URL") + ".xsl", "contents", true);
                 break;
             case "Certificate":
                 extractContent(ye, dir, f.getName().replace(".yaml", ".pem"), "key", true);
                 extractContent(ye, dir, f.getName().replace(".yaml", ".crt"), "content", true);
                 break;
             case "ResourceBlob":
-                String type = ye.fields.get("type");
+                String type = ye.getFields().get("type");
                 switch (type) {
                     case "schema":
                         type = "xsd";
                         break;
                 }
 
-                extractContent(ye, dir, ye.fields.get("ID") + "." + type, "content", true);
+                extractContent(ye, dir, ye.getFields().get("ID") + "." + type, "content", true);
                 break;
         }
     }
 
-    private void extractContent(com.axway.gw.es.model.entity.Entity ye, File dir, String fileName, String field, boolean base64Decode) throws IOException {
-        String content = ye.fields.remove(field);
+    private void extractContent(EntityDTO ye, File dir, String fileName, String field, boolean base64Decode) throws IOException {
+        String content = ye.getFields().remove(field);
         if (content == null) {
             return;
         }
@@ -271,17 +272,16 @@ public class EntityManager {
         }
         Files.write(path, data);
 
-        ye.fields.put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
+        ye.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
-    private void setFields(Entity value, com.axway.gw.es.model.entity.Entity ye) {
-        com.vordel.es.Field[] allFields = value.getAllFields();
-        List<com.vordel.es.Field> refs = value.getReferenceFields();
-        for (com.vordel.es.Field f : allFields) {
-            com.vordel.es.FieldType ft = f.getType();
+    private void setFields(Entity value, EntityDTO ye) {
+        Field[] allFields = value.getAllFields();
+        List<Field> refs = value.getReferenceFields();
+        for (Field f : allFields) {
             if (!refs.contains(f)) { // not a reference
                 String fval = value.getStringValue(f.getName());
-                if (!types.get(ye.meta.type).isDefaultValue(f.getName(), fval)) {
+                if (!types.get(ye.getMeta().getType()).isDefaultValue(f.getName(), fval)) {
                     ye.addFval(f.getName(), fval);
                 }
             }
@@ -301,7 +301,7 @@ public class EntityManager {
         return false;
     }
 
-    private void setReferences(Entity value, com.axway.gw.es.model.entity.Entity ye) {
+    private void setReferences(Entity value, EntityDTO ye) {
         List<com.vordel.es.Field> refs = value.getReferenceFields();
         for (com.vordel.es.Field field : refs) {
             ESPK ref = field.getReference(); // just deal with single at the moment
@@ -311,8 +311,8 @@ public class EntityManager {
                     key = ref.toString();
                 } else {
                     key = getPath(ref);
-                    if (key.startsWith(ye.key)) {
-                        key = key.substring(ye.key.length() + 1);
+                    if (key.startsWith(ye.getKey())) {
+                        key = key.substring(ye.getKey().length() + 1);
                     }
                 }
                 ye.addFval(field.getName(), key);
@@ -390,7 +390,7 @@ public class EntityManager {
             return;
         }
         Entity e = getEntity(pk);
-        com.axway.gw.es.model.entity.Entity ye = yamlize(e, true);
+        EntityDTO ye = yamlize(e, true);
         mappedEntities.add(ye);
 
         //LOGGER.info("Loaded entity:  " + TraceEntity.describeEntity(e));

@@ -1,10 +1,13 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.type.Type;
+import com.axway.gw.es.model.entity.EntityDTO;
+import com.axway.gw.es.model.type.TypeDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.*;
+import com.vordel.es.impl.AbstractTypeStore;
 import com.vordel.es.impl.EntityTypeMap;
+import com.vordel.es.provider.file.IndexedEntityTree;
 import com.vordel.es.util.ESPKCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,31 +16,39 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
-    private final static Logger LOGGER = LoggerFactory.getLogger(YamlEntityStore.class);
 
-    private EntityTypeMap typeMap = new EntityTypeMap();
+    private static final Logger log = LoggerFactory.getLogger(YamlEntityStore.class);
 
-    private static String SCHEME = "yaml:";
+    private final EntityTypeMap typeMap = new EntityTypeMap();
 
-    private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    public static final String SCHEME = "yaml:";
+
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     private File rootLocation = null;
     private ESPK root;
 
-    private Map<String, Type> types = new HashMap<>();
+    private Map<String, TypeDTO> types = new LinkedHashMap<>();
 
     private IndexedEntityTree entities = new IndexedEntityTree();
 
     public YamlEntityStore() {
+        // TODO make it public in es-core
+        try {
+            getChildrenMethod(entities).setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -59,7 +70,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             url = url.substring(SCHEME.length());
         else
             throw new EntityStoreException("Invalid URL: " + url);
-        LOGGER.info("Loading the url " + url);
+        log.info("Loading the url " + url);
         try {
             rootLocation = new File(new URL(url).getFile());
         } catch (MalformedURLException e) {
@@ -69,9 +80,13 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             loadTypes();
             loadEntities();
         } catch (IOException e) {
-            LOGGER.error("Error opening yaml store", e);
+            log.error("Error opening yaml store", e);
             throw new EntityStoreException("Error opening yaml store", e);
         }
+    }
+
+    void setRootLocation(File rootLocation) {
+        this.rootLocation = rootLocation;
     }
 
     public void loadEntities() throws EntityStoreException {
@@ -88,7 +103,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     public ESPK loadEntities(File dir, ESPK parentPK) throws EntityStoreException, IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
-        LOGGER.info("loading files from " + dir);
+        log.info("loading files from " + dir);
 
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
@@ -116,22 +131,22 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     Entity createEntity(File file, ESPK parentPK) throws IOException {
-        com.axway.gw.es.model.entity.Entity yEntity = mapper.readValue(file, com.axway.gw.es.model.entity.Entity.class);
+        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
         File dir = file.getParentFile();
 
-        Entity entity = createEntity(yEntity, parentPK, dir);
+        Entity entity = createEntity(entityDTO, parentPK, dir);
 
-        if (yEntity.children != null) {
-            for (Map.Entry<String, com.axway.gw.es.model.entity.Entity> entry : yEntity.children.entrySet()) {
+        if (entityDTO.getChildren() != null) {
+            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
                 createEntity(entry.getValue(), entity.getPK(), dir);
             }
         }
         return entity;
     }
 
-    private Entity createEntity(com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK, File dir) throws IOException {
-        yEntity.meta.yType = types.get(yEntity.meta.type);
-        Entity entity = EntityFactory.convert(yEntity, parentPK, this, dir);
+    private Entity createEntity(EntityDTO entityDTO, ESPK parentPK, File dir) throws IOException {
+        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
+        Entity entity = EntityFactory.convert(entityDTO, parentPK, this, dir);
         entities.add(parentPK, entity);
         return entity;
     }
@@ -150,17 +165,17 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
         File root = new File(rootLocation, "META-INF/Types.yaml");
-        Type yType = mapper.readValue(root, Type.class);
+        TypeDTO typeDTO = YAML_MAPPER.readValue(root, TypeDTO.class);
         // for the moment load everything into memory rather than ondemmand
-        loadType(yType, null);
+        loadType(typeDTO, null);
     }
 
-    private YamlEntityType loadType(Type yType, YamlEntityType parent) throws EntityStoreException {
-        types.put(yType.name, yType);
-        YamlEntityType type = YamlEntityType.convert(yType);
+    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) throws EntityStoreException {
+        types.put(typeDTO.getName(), typeDTO);
+        YamlEntityType type = YamlEntityType.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
-        for (Type yChild : yType.getChildren()) {
+        for (TypeDTO yChild : typeDTO.getChildren()) {
             loadType(yChild, type);
         }
         return type;
@@ -265,7 +280,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      */
     @Override
     public Collection<ESPK> findChildren(ESPK parentId, Field[] reqFields, EntityType type) {
-        Collection<Entity> children = entities.getChildren(parentId);
+        Collection<Entity> children = getChildren(entities, parentId);
         ESPKCollection resList = new ESPKCollection(children.size());
         for (Entity e : children) {
             if (type == null || type.isAncestorOfType(e.getType())) {
@@ -280,6 +295,22 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         }
         return resList;
     }
+
+
+    private Collection<Entity> getChildren(IndexedEntityTree entities, ESPK parentId) {
+        //TODO remove that in favor of public version of getChildren
+        try {
+            return (Collection<Entity>) getChildrenMethod(entities).invoke(entities, parentId);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Method getChildrenMethod(IndexedEntityTree entities) throws NoSuchMethodException {
+        checkNotNull(entities);
+        return entities.getClass().getDeclaredMethod("getChildren", ESPK.class);
+    }
+
 
     /**
      * Get a Set of ESPKs which identify all Entities in the store which
@@ -438,4 +469,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     protected EntityType retrieveType(String typeName) throws EntityStoreException {
         return typeMap.getTypeForName(typeName);
     }
+
+
 }
