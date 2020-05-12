@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<slf4jVersion>1.7.30</slf4jVersion>
-		<apigateway.version>7.7.20200331</apigateway.version>
+		<apigateway.version>7.7.0.20200530-SNAPSHOT</apigateway.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -89,6 +89,19 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<!-- Local dependency to es-core-7.x.x-x.jar -->
+		<dependency>
+			<groupId>com.axway.apigw.es</groupId>
+			<artifactId>es-core</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
+
+		<!-- Local dependency to apigw-common-7.x.x-x.jar -->
+		<dependency>
+			<groupId>com.axway.apigw</groupId>
+			<artifactId>apigw-common</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
@@ -159,19 +172,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Local dependency to es-core-7.x.x-x.jar -->
-		<dependency>
-			<groupId>es-core</groupId>
-			<artifactId>es-core</artifactId>
-			<version>${apigateway.version}</version>
-		</dependency>
 
-		<!-- Local dependency to apigw-common-7.x.x-x.jar -->
-		<dependency>
-			<groupId>apigw-common</groupId>
-			<artifactId>apigw-common</artifactId>
-			<version>${apigateway.version}</version>
-		</dependency>
 	</dependencies>
 </project>
 
