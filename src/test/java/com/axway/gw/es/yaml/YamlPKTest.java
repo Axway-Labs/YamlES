@@ -3,38 +3,38 @@ package com.axway.gw.es.yaml;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 class YamlPKTest {
 
 	@Test
 	void testSimplePk() {
 		String location = "API Manager Protection Policy";
 		YamlPK yamlPk = new YamlPK(location);
-		Assertions.assertEquals(yamlPk.hashCode(), location.hashCode());
-		Assertions.assertEquals(yamlPk.getPath(), location);
+		YamlPK yamlPk2 = new YamlPK(location);
+		assertEquals(yamlPk, yamlPk2);
+		assertEquals(yamlPk.hashCode(), yamlPk2.hashCode());
+		assertEquals(yamlPk.getLocation(), location);
 	}
 	
 	@Test
 	void testWithParentPK() {
 		String parentKeyLocation = "Parent PK Location";
 		YamlPK parentPk = new YamlPK(parentKeyLocation);
-		String chidlLocation = "Child Location";
-		YamlPK yamlPk = new YamlPK(parentPk, chidlLocation);
-		Assertions.assertEquals(new String(parentKeyLocation + "/" + chidlLocation).hashCode(), yamlPk.hashCode());
-		Assertions.assertFalse(parentPk.equals(yamlPk));
-		Assertions.assertEquals(new String(parentKeyLocation + "/" + chidlLocation), yamlPk.getPath());
+		String childLocation = "Child Location";
+		YamlPK yamlPk = new YamlPK(parentPk, childLocation);
+		assertNotEquals(parentPk, yamlPk);
+		assertTrue(yamlPk.getLocation().startsWith(parentKeyLocation));
+		assertTrue(yamlPk.getLocation().endsWith(childLocation));
 	}
 	
 	@Test
-	void testPKEquals() {
+	void testPKNotEquals() {
 		String locationA = "Location A";
 		String locationB = "Location B";
-		
 		YamlPK yamlPkA = new YamlPK(locationA);
 		YamlPK yamlPkB = new YamlPK(locationB);
-		YamlPK yamlPkC = new YamlPK(locationA);
-		
-		Assertions.assertFalse(yamlPkA.equals(yamlPkB));
-		Assertions.assertTrue(yamlPkA.equals(yamlPkC));
+		assertNotEquals(yamlPkA, yamlPkB);
 	}
 
 }

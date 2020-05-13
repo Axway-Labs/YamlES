@@ -1,10 +1,15 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.model.type.Type;
+import com.axway.gw.es.yaml.model.entity.EntityDTO;
+import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.util.IndexedEntityTreeDelegate;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.vordel.es.*;
+import com.vordel.es.impl.AbstractTypeStore;
 import com.vordel.es.impl.EntityTypeMap;
+import com.vordel.es.provider.file.IndexedEntityTree;
 import com.vordel.es.util.ESPKCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,29 +21,32 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static com.axway.gw.es.yaml.tools.EntityManager.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.tools.EntityManager.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.tools.TypeManager.TYPES_FILE;
+
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
-    private final static Logger LOGGER = LoggerFactory.getLogger(YamlEntityStore.class);
 
-    private EntityTypeMap typeMap = new EntityTypeMap();
+    private static final Logger LOG = LoggerFactory.getLogger(YamlEntityStore.class);
+    public static final String SCHEME = "yaml:";
+    public static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private static String SCHEME = "yaml:";
-
-    private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-
-    private File rootLocation = null;
-    private ESPK root;
-
-    private Map<String, Type> types = new HashMap<>();
-
-    private IndexedEntityTree entities = new IndexedEntityTree();
-
-    public YamlEntityStore() {
+    static {
+        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
+
+    private File rootLocation;
+    private ESPK root;
+    private final Map<String, TypeDTO> types = new LinkedHashMap<>();
+    private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
+    private final EntityTypeMap typeMap = new EntityTypeMap();
 
     /**
      * Connect to an entity store.
@@ -51,7 +59,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                    contents of these properties.
      */
     @Override
-    public void connect(String url, Properties credentials) throws EntityStoreException {
+    public void connect(String url, Properties credentials) {
         if (url == null || url.length() <= 0)
             throw new EntityStoreException("Provide URL to the directory for the yaml store");
 
@@ -59,22 +67,25 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             url = url.substring(SCHEME.length());
         else
             throw new EntityStoreException("Invalid URL: " + url);
-        LOGGER.info("Loading the url " + url);
+        LOG.info("Loading the url {}", url);
         try {
             rootLocation = new File(new URL(url).getFile());
         } catch (MalformedURLException e) {
-            throw new EntityStoreException("Unable to parse URL " + e.getMessage());
+            throw new EntityStoreException("Unable to parse URL", e);
         }
         try {
             loadTypes();
             loadEntities();
         } catch (IOException e) {
-            LOGGER.error("Error opening yaml store", e);
             throw new EntityStoreException("Error opening yaml store", e);
         }
     }
 
-    public void loadEntities() throws EntityStoreException {
+    void setRootLocation(File rootLocation) {
+        this.rootLocation = rootLocation;
+    }
+
+    public void loadEntities() {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
         // for the moment load everything into memory rather than ondemmand
@@ -85,10 +96,11 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         }
     }
 
-    public ESPK loadEntities(File dir, ESPK parentPK) throws EntityStoreException, IOException {
+    public ESPK loadEntities(File dir, ESPK parentPK) throws IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
-        LOGGER.info("loading files from " + dir);
+
+        LOG.info("loading files from {}", dir);
 
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
@@ -97,18 +109,21 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         }
 
         if (dir.toString().contains("Certificate Store")) {
-            System.out.println("YamlEntityStore.loadEntities");
+            LOG.warn("Certificate Store is not handled");
         }
-        File[] files = dir.listFiles();
-        for (File file : files) {
-            if (file.toString().endsWith("metadata.yaml") || file.toString().endsWith("META-INF")) {
-                // skip over metadata.yaml
-                continue;
-            }
-            if (file.isDirectory()) {
-                loadEntities(file, parentPK);
-            } else if (file.toString().endsWith(".yaml")) {
-                createEntity(file, parentPK);
+
+        final File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.toString().endsWith(METADATA_FILENAME) || file.toString().endsWith("META-INF")) {
+                    // skip over metadata.yaml
+                    continue;
+                }
+                if (file.isDirectory()) {
+                    loadEntities(file, parentPK);
+                } else if (file.toString().endsWith(YAML_EXTENSION)) {
+                    createEntity(file, parentPK);
+                }
             }
         }
 
@@ -116,51 +131,48 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     Entity createEntity(File file, ESPK parentPK) throws IOException {
-        com.axway.gw.es.model.entity.Entity yEntity = mapper.readValue(file, com.axway.gw.es.model.entity.Entity.class);
+        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
         File dir = file.getParentFile();
 
-        Entity entity = createEntity(yEntity, parentPK, dir);
+        Entity entity = createEntity(entityDTO, parentPK, dir);
 
-        if (yEntity.children != null) {
-            for (Map.Entry<String, com.axway.gw.es.model.entity.Entity> entry : yEntity.children.entrySet()) {
+        if (entityDTO.getChildren() != null) {
+            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
                 createEntity(entry.getValue(), entity.getPK(), dir);
             }
         }
         return entity;
     }
 
-    private Entity createEntity(com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK, File dir) throws IOException {
-        yEntity.meta.yType = types.get(yEntity.meta.type);
-        Entity entity = EntityFactory.convert(yEntity, parentPK, this, dir);
+    private Entity createEntity(EntityDTO entityDTO, ESPK parentPK, File dir) throws IOException {
+        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
+        Entity entity = EntityFactory.convert(entityDTO, parentPK, this, dir);
         entities.add(parentPK, entity);
         return entity;
     }
 
     private Entity createParentEntity(File dir, ESPK parentPK) throws IOException {
-        File metadata = new File(dir, "metadata.yaml");
+        File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
             return createEntity(metadata, parentPK);
         }
         return null;
-        // String name = dir.getName();
-        //throw new EntityStoreException("no metadata file for the entity " + name);
     }
 
-    public void loadTypes() throws EntityStoreException, IOException {
+    public void loadTypes() throws IOException {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
-        File root = new File(rootLocation, "META-INF/Types.yaml");
-        Type yType = mapper.readValue(root, Type.class);
+        TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
         // for the moment load everything into memory rather than ondemmand
-        loadType(yType, null);
+        loadType(typeDTO, null);
     }
 
-    private YamlEntityType loadType(Type yType, YamlEntityType parent) throws EntityStoreException {
-        types.put(yType.name, yType);
-        YamlEntityType type = YamlEntityType.convert(yType);
+    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
+        types.put(typeDTO.getName(), typeDTO);
+        YamlEntityType type = YamlEntityType.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
-        for (Type yChild : yType.getChildren()) {
+        for (TypeDTO yChild : typeDTO.getChildren()) {
             loadType(yChild, type);
         }
         return type;
@@ -186,7 +198,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @throws EntityStoreException If the specified Entity doesn't exist
      */
     @Override
-    public Entity getEntity(ESPK pk) throws EntityStoreException {
+    public Entity getEntity(ESPK pk) {
         return entities.getEntity(pk);
     }
 
@@ -200,7 +212,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @return An Entity
      */
     @Override
-    public Entity getEntity(ESPK pk, String[] requiredFieldNames) throws EntityStoreException {
+    public Entity getEntity(ESPK pk, String[] requiredFieldNames) {
         return getEntity(pk);
     }
 
@@ -215,7 +227,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @throws DuplicateKeysException If an entity with the same keys already exists in the store.
      */
     @Override
-    public ESPK addEntity(ESPK parentPK, Entity entity) throws EntityStoreException {
+    public ESPK addEntity(ESPK parentPK, Entity entity) {
         return null;
     }
 
@@ -227,7 +239,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *               set.
      */
     @Override
-    public void updateEntity(Entity entity) throws EntityStoreException {
+    public void updateEntity(Entity entity) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -236,8 +249,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @param pk Identity of the Entity to be deleted
      */
     @Override
-    public void deleteEntity(ESPK pk) throws EntityStoreException {
-
+    public void deleteEntity(ESPK pk) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -249,7 +262,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @return A Collection of zero or more child ESPKs
      */
     @Override
-    public Collection<ESPK> listChildren(ESPK pk, EntityType type) throws EntityStoreException {
+    public Collection<ESPK> listChildren(ESPK pk, EntityType type) {
         return findChildren(pk, null, type);
     }
 
@@ -281,6 +294,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return resList;
     }
 
+
     /**
      * Get a Set of ESPKs which identify all Entities in the store which
      * contain a field or fields which hold a reference to the Entity specified
@@ -292,8 +306,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @throws EntityStoreException If the PK is unknown.
      */
     @Override
-    public Collection<ESPK> findReferringEntities(ESPK targetEntityPK) throws EntityStoreException {
-        return null;
+    public Collection<ESPK> findReferringEntities(ESPK targetEntityPK) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -301,8 +315,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * have been associated with the connection.
      */
     @Override
-    public void disconnect() throws EntityStoreException {
-
+    public void disconnect() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -315,7 +329,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                              steps to instantiate the schema components.
      */
     @Override
-    public void initialize() throws EntityStoreException {
+    public void initialize() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -326,8 +341,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @return Collection&lt;ESPK&gt; a list of the newly imported objects.
      */
     @Override
-    public Collection<ESPK> importData(InputStream stream) throws EntityStoreException {
-        return null;
+    public Collection<ESPK> importData(InputStream stream) {
+        throw new UnsupportedOperationException();
     }
 
 
@@ -345,8 +360,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @throws EntityStoreException if the OutputStream is null.
      */
     @Override
-    public void exportContents(OutputStream out, Collection<ESPK> startNodes, int flags) throws EntityStoreException {
-
+    public void exportContents(OutputStream out, Collection<ESPK> startNodes, int flags) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -356,7 +371,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                              unable to start a transaction
      */
     @Override
-    public void startTransaction() throws EntityStoreException {
+    public void startTransaction() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -368,8 +384,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                              the underlying implementation was unable to commit.
      */
     @Override
-    public void commit() throws EntityStoreException {
-
+    public void commit() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -381,8 +397,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                              started
      */
     @Override
-    public void rollback() throws EntityStoreException {
-
+    public void rollback() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -392,7 +408,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @param listener The listener for EntityStore change events
      */
     @Override
-    public void registerChangeListener(ESPK entityPK, ESChangeListener listener) throws EntityStoreException {
+    public void registerChangeListener(ESPK entityPK, ESChangeListener listener) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -403,8 +420,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      *                 registered.
      */
     @Override
-    public void deregisterChangeListener(ESPK entityPK, ESChangeListener listener) throws EntityStoreException {
-
+    public void deregisterChangeListener(ESPK entityPK, ESChangeListener listener) {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -415,27 +432,29 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      * @return an ESPK as per the particular implementation
      */
     @Override
-    public ESPK decodePK(String stringifiedPK) throws EntityStoreException {
-        return null;
+    public ESPK decodePK(String stringifiedPK) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void deleteType(String typeName) throws EntityStoreException {
+    protected void deleteType(String typeName) {
         typeMap.removeType(typeName);
     }
 
     @Override
-    protected void persistType(EntityType type) throws EntityStoreException {
+    protected void persistType(EntityType type) {
         typeMap.addType(type);
     }
 
     @Override
-    protected String[] retrieveSubtypes(String typeName) throws EntityStoreException {
+    protected String[] retrieveSubtypes(String typeName) {
         return typeMap.getSubtypeNames(typeName);
     }
 
     @Override
-    protected EntityType retrieveType(String typeName) throws EntityStoreException {
+    protected EntityType retrieveType(String typeName) {
         return typeMap.getTypeForName(typeName);
     }
+
+
 }

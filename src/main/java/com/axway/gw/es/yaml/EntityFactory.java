@@ -1,5 +1,6 @@
 package com.axway.gw.es.yaml;
 
+import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.vordel.es.ESPK;
 import com.vordel.es.Entity;
 import com.vordel.es.EntityType;
@@ -15,8 +16,12 @@ import java.util.Map;
 
 public class EntityFactory {
 
-    private static class MyEntity extends Entity {
-        public MyEntity(EntityType type) {
+    private EntityFactory() {
+        // no op
+    }
+
+    private static class YamlStoreEntity extends Entity {
+        public YamlStoreEntity(EntityType type) {
             super(type);
         }
 
@@ -29,44 +34,47 @@ public class EntityFactory {
         }
     }
 
-    public static Entity convert(com.axway.gw.es.model.entity.Entity yEntity, ESPK parentPK, YamlEntityStore es, File dir) throws IOException {
-        EntityType type = es.getTypeForName(yEntity.meta.type);
-        MyEntity entity = new MyEntity(type);
+    public static Entity convert(EntityDTO entityDTO, ESPK parentPK, YamlEntityStore es, File dir) throws IOException {
+        EntityType type = es.getTypeForName(entityDTO.getMeta().getType());
+        YamlStoreEntity entity = new YamlStoreEntity(type);
 
-        if (yEntity.fields != null) {
+        if (entityDTO.getFields() != null) {
 
             // fields
-            for (Map.Entry<String, String> field : yEntity.fields.entrySet()) {
-                if (type.isConstantField(field.getKey())) {
+            for (Map.Entry<String, String> fieldEntry : entityDTO.getFields().entrySet()) {
+                if (type.isConstantField(fieldEntry.getKey())) {
                     continue; // don't set constants
                 }
 
-                String fieldName = StringUtils.substringBefore(field.getKey(), "#");
-
-                FieldType ft = type.getFieldType(fieldName);
-                if (ft.isRefType() || ft.isSoftRefType()) {
-                    entity.setReferenceField(fieldName, new YamlPK(field.getValue()));
-                } else {
-                    String content = field.getValue();
-                    if (field.getKey().contains("#ref")) {
-                        byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
-                        if (field.getKey().endsWith("#refbase64")) {
-                            content = Base64.getEncoder().encodeToString(data);
-                        } else {
-                            content = new String(data);
-                        }
-                    }
-                    entity.setField(fieldName, new Value[]{new Value(content)});
-                }
+                processField(dir, type, entity, fieldEntry.getKey(), fieldEntry.getValue());
             }
         }
 
         // pk
-        ESPK pk = parentPK == null ? new YamlPK(yEntity.getKeyDescription()) : new YamlPK(parentPK, yEntity.getKeyDescription());
+        ESPK pk = parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
         entity.setPK(pk);
-        // parent pk
-        //ESPK parentPK = new YamlPK(yEntity.parent);
+
         entity.setParentPK(parentPK);
         return entity;
+    }
+
+    private static void processField(File dir, EntityType type, YamlStoreEntity entity, String rawFieldName, String fieldValue) throws IOException {
+        String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+
+        FieldType ft = type.getFieldType(fieldName);
+        if (ft.isRefType() || ft.isSoftRefType()) {
+            entity.setReferenceField(fieldName, new YamlPK(fieldValue));
+        } else {
+            String content = fieldValue;
+            if (rawFieldName.contains("#ref")) {
+                byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
+                if (rawFieldName.endsWith("#refbase64")) {
+                    content = Base64.getEncoder().encodeToString(data);
+                } else {
+                    content = new String(data);
+                }
+            }
+            entity.setField(fieldName, new Value[]{new Value(content)});
+        }
     }
 }
