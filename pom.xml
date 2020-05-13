@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<slf4jVersion>1.7.30</slf4jVersion>
-		<apigateway.version>7.7.0.20200530-SNAPSHOT</apigateway.version>
+		<apigateway.version>7.7.20200130</apigateway.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -17,7 +17,6 @@
 	</repositories>
 
 	<build>
-		<sourceDirectory>src/main/java</sourceDirectory>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -89,19 +88,7 @@
 		</plugins>
 	</build>
 	<dependencies>
-		<!-- Local dependency to es-core-7.x.x-x.jar -->
-		<dependency>
-			<groupId>com.axway.apigw.es</groupId>
-			<artifactId>es-core</artifactId>
-			<version>${apigateway.version}</version>
-		</dependency>
 
-		<!-- Local dependency to apigw-common-7.x.x-x.jar -->
-		<dependency>
-			<groupId>com.axway.apigw</groupId>
-			<artifactId>apigw-common</artifactId>
-			<version>${apigateway.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
@@ -171,8 +158,56 @@
 			<version>5.6.2</version>
 			<scope>test</scope>
 		</dependency>
-
-
 	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>current</id>
+			<activation>
+				<property>
+					<name>apigateway.version</name>
+					<value>7.7.0.20200530-SNAPSHOT</value>
+				</property>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>com.axway.apigw</groupId>
+					<artifactId>apigw-common</artifactId>
+					<version>${apigateway.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>com.axway.apigw.es</groupId>
+					<artifactId>es-core</artifactId>
+					<version>${apigateway.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>legacy</id>
+			<activation>
+				<property>
+					<name>apigateway.version</name>
+					<value>!7.7.0.20200530-SNAPSHOT</value>
+				</property>
+			</activation>
+			<dependencies>
+				<!-- Local dependency to es-core-7.x.x-x.jar -->
+				<dependency>
+					<groupId>es-core</groupId>
+					<artifactId>es-core</artifactId>
+					<version>${apigateway.version}</version>
+				</dependency>
+
+				<!-- Local dependency to apigw-common-7.x.x-x.jar -->
+				<dependency>
+					<groupId>apigw-common</groupId>
+					<artifactId>apigw-common</artifactId>
+					<version>${apigateway.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+
+	</profiles>
+
 </project>
 

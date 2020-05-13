@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>com.axway.apigw</groupId>
+  <artifactId>apigw-common</artifactId>
+  <version>7.7.0.20200530-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <localCopy>true</localCopy>
+    </snapshot>
+    <lastUpdated>20200513123354</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>jar</extension>
+        <value>7.7.0.20200530-SNAPSHOT</value>
+        <updated>20200513123354</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>7.7.0.20200530-SNAPSHOT</value>
+        <updated>20200513123354</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>

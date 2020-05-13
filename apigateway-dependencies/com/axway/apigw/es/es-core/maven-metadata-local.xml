@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.axway.apigw.es</groupId>
+  <artifactId>es-core</artifactId>
+  <versioning>
+    <versions>
+      <version>7.7.0.20200530-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20200513123353</lastUpdated>
+  </versioning>
+</metadata>

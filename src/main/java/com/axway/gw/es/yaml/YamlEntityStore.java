@@ -2,6 +2,7 @@ package com.axway.gw.es.yaml;
 
 import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.util.IndexedEntityTreeDelegate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -44,7 +45,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private File rootLocation;
     private ESPK root;
     private final Map<String, TypeDTO> types = new LinkedHashMap<>();
-    private final IndexedEntityTree entities = new IndexedEntityTree();
+    private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
 
     /**
