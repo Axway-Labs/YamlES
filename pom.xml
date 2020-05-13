@@ -11,6 +11,7 @@
 			Default API-Gateway version to use
 			use mvn .... -Dapigateway.version=7.7.... to use a different version
 			Make sure, you have added the required JARs to the project repository apigateway-dependencies
+			See script: import-deps.sh
 		-->
 		<apigateway.version>7.7.20200130</apigateway.version>
 	</properties>
