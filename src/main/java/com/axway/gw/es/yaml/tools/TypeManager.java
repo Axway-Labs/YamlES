@@ -15,7 +15,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
+import com.axway.gw.es.yaml.YamlEntityStore;
 
 
 public class TypeManager {
@@ -38,7 +38,7 @@ public class TypeManager {
         boolean created = dir.mkdirs();
         if (!created) throw new IOException(dir + " was not created");
         File out = new File(dir, TYPES_FILE);
-        YAML_MAPPER.writeValue(out, baseType);
+        YamlEntityStore.YAML_MAPPER.writeValue(out, baseType);
     }
 
     public Map<String, TypeDTO> getTypes() {

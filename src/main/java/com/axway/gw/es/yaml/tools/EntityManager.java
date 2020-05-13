@@ -1,5 +1,6 @@
 package com.axway.gw.es.yaml.tools;
 
+import com.axway.gw.es.yaml.YamlEntityStore;
 import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.vordel.es.*;
@@ -14,7 +15,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class EntityManager {
@@ -199,7 +200,7 @@ public class EntityManager {
 
         if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
             out.mkdirs();
-            YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
+            YamlEntityStore.YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
         } else { // handle as file
             String filename = out.getPath() + YAML_EXTENSION;
             File f = new File(filename);
@@ -207,7 +208,7 @@ public class EntityManager {
 
             extractContent(entityDTO, f);
 
-            YAML_MAPPER.writeValue(f, entityDTO);
+            YamlEntityStore.YAML_MAPPER.writeValue(f, entityDTO);
         }
 
     }
