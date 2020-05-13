@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        apigateway-version: [7.7.20200331, 7.7.20200130, 7.7.0, 7.7.0, 7.7.0.20200530-SNAPSHOT]
+        apigateway-version: [7.7.20200331, 7.7.20200130, 7.7.0, 7.7.0.20200530-SNAPSHOT]
 
     steps:
     - name: Cache Maven dependencies
