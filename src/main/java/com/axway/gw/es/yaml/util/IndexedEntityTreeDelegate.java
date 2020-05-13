@@ -14,8 +14,6 @@ public class IndexedEntityTreeDelegate {
 
     public IndexedEntityTreeDelegate(IndexedEntityTree delegate) {
         this.delegate = delegate;
-        final Method method = getGetGetChildrenMethod();
-        method.setAccessible(true);
     }
 
     public void reset() {
@@ -44,8 +42,7 @@ public class IndexedEntityTreeDelegate {
 
     public Collection<Entity> getChildren(ESPK parentPK) {
         try {
-            @SuppressWarnings("unchecked")
-            final Collection<Entity> result = (Collection<Entity>) getGetGetChildrenMethod().invoke(delegate, parentPK);
+            @SuppressWarnings("unchecked") final Collection<Entity> result = (Collection<Entity>) getGetGetChildrenMethod().invoke(delegate, parentPK);
             return result;
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new UnsupportedOperationException("Cannot call getChildren", e);
@@ -57,13 +54,14 @@ public class IndexedEntityTreeDelegate {
     }
 
     private Method getGetGetChildrenMethod() {
-        Method method;
+
         try {
-            method = IndexedEntityTree.class.getDeclaredMethod("getChildren", ESPK.class);
+            Method method = IndexedEntityTree.class.getDeclaredMethod("getChildren", ESPK.class);
+            method.setAccessible(true);
+            return method;
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOperationException("Cannot access getChildren method", e);
         }
-        return method;
     }
 
 }
