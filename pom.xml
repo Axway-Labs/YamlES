@@ -7,6 +7,11 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<slf4jVersion>1.7.30</slf4jVersion>
+		<!-- 
+			Default API-Gateway version to use
+			use mvn .... -Dapigateway.version=7.7.... to use a different version
+			Make sure, you have added the required JARs to the project repository apigateway-dependencies
+		-->
 		<apigateway.version>7.7.20200130</apigateway.version>
 	</properties>
 	<repositories>
@@ -158,56 +163,16 @@
 			<version>5.6.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>es-core</groupId>
+			<artifactId>es-core</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>apigw-common</groupId>
+			<artifactId>apigw-common</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
 	</dependencies>
-
-	<profiles>
-		<profile>
-			<id>current</id>
-			<activation>
-				<property>
-					<name>apigateway.version</name>
-					<value>7.7.0.20200530-SNAPSHOT</value>
-				</property>
-			</activation>
-			<dependencies>
-				<dependency>
-					<groupId>com.axway.apigw</groupId>
-					<artifactId>apigw-common</artifactId>
-					<version>${apigateway.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>com.axway.apigw.es</groupId>
-					<artifactId>es-core</artifactId>
-					<version>${apigateway.version}</version>
-				</dependency>
-			</dependencies>
-		</profile>
-		<profile>
-			<id>legacy</id>
-			<activation>
-				<property>
-					<name>apigateway.version</name>
-					<value>!7.7.0.20200530-SNAPSHOT</value>
-				</property>
-			</activation>
-			<dependencies>
-				<!-- Local dependency to es-core-7.x.x-x.jar -->
-				<dependency>
-					<groupId>es-core</groupId>
-					<artifactId>es-core</artifactId>
-					<version>${apigateway.version}</version>
-				</dependency>
-
-				<!-- Local dependency to apigw-common-7.x.x-x.jar -->
-				<dependency>
-					<groupId>apigw-common</groupId>
-					<artifactId>apigw-common</artifactId>
-					<version>${apigateway.version}</version>
-				</dependency>
-			</dependencies>
-		</profile>
-
-	</profiles>
-
 </project>
 
