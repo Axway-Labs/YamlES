@@ -33,7 +33,7 @@ public class BatchYamlStoreConverterTestIT {
 
         ESDiff diff = ESDiff.diff(sourceES, yamlEntityStore);
 
-        assertDiffCount(diff,0);
+        assertDiffCount(diff,0, project);
 
     }
 

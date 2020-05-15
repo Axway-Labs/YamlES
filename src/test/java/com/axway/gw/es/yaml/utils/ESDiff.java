@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.vordel.es.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -20,8 +22,8 @@ public class ESDiff {
 
     static {
         JSON_EXPORTER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        JSON_EXPORTER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        JSON_EXPORTER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+//        JSON_EXPORTER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+//        JSON_EXPORTER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
 
     private final EntityStore source;
@@ -42,11 +44,11 @@ public class ESDiff {
         final Entity targetRoot = target.getEntity(target.getRootPK());
         diff.registerSourceESPKAndCompare(new SourceEntity(sourceRoot), new TargetEntity(targetRoot));
 
-//        // descend the tree and compare with target
-//        diff.compareChildren(source.getRootPK());
-//
-//        // find orphans in target
-//        diff.findOrphans(target.getRootPK());
+        // descend the tree and compare with target
+        // diff.compareChildren(source.getRootPK());
+
+        // find orphans in target
+        // diff.findOrphans(target.getRootPK());
 
         return diff;
     }
@@ -88,13 +90,14 @@ public class ESDiff {
     }
 
 
-    public String diffAsJson() throws JsonProcessingException {
+    public String diffAsJsonString() throws JsonProcessingException {
         return JSON_EXPORTER.writerWithDefaultPrettyPrinter().writeValueAsString(diffList);
     }
 
-    public void dumpDiffList() {
-
+    public void dumpDiffJson(File dumpeFile) throws IOException {
+        JSON_EXPORTER.writerWithDefaultPrettyPrinter().writeValue(dumpeFile, diffList);
     }
+
 
     public List<Diff> diffList() {
         return diffList;
@@ -246,6 +249,10 @@ public class ESDiff {
             return field.getType().isSoftRefType();
         }
 
+        public List<Value> getTypeDefaultValues() {
+            return field.getType().getDefaultValues();
+        }
+
         public String getReference() {
             if (isRefType()) {
                 return field.getReference().toString();
@@ -273,14 +280,16 @@ public class ESDiff {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             FieldWrapper that = (FieldWrapper) o;
-            return field.equals(that.field) &&
-                    Objects.equals(values, that.values);
+            boolean fieldEquals = field.equals(that.field);
+            boolean valueEquals = Objects.equals(values, that.values);
+            return fieldEquals && valueEquals;
         }
 
         @Override
         public int hashCode() {
             return Objects.hash(field, values);
         }
+
     }
 
     public static class ValueWrapper {

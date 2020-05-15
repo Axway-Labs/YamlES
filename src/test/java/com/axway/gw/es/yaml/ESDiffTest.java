@@ -1,9 +1,6 @@
 package com.axway.gw.es.yaml;
 
 import com.axway.gw.es.yaml.utils.ESDiff;
-import com.axway.gw.es.yaml.utils.ESTestsUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -35,7 +32,7 @@ public class ESDiffTest {
         final ESDiff diff = ESDiff.diff(source, target);
 
         assertDiffCount(diff, 0);
-        assertThat(diff.diffAsJson()).isEqualTo("[ ]");
+        assertThat(diff.diffAsJsonString()).isEqualTo("[ ]");
 
     }
 

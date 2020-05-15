@@ -28,6 +28,7 @@ import java.util.Properties;
 import static com.axway.gw.es.yaml.utils.EntityManager.METADATA_FILENAME;
 import static com.axway.gw.es.yaml.utils.EntityManager.YAML_EXTENSION;
 import static com.axway.gw.es.yaml.utils.TypeManager.TYPES_FILE;
+import static java.lang.System.currentTimeMillis;
 
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
@@ -38,8 +39,8 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     static {
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
 
     private File rootLocation;
@@ -74,8 +75,11 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             throw new EntityStoreException("Unable to parse URL", e);
         }
         try {
+            long start = currentTimeMillis();
             loadTypes();
             loadEntities();
+            long end = currentTimeMillis();
+            LOG.info("Loaded ES with {} types and {} entities in {}ms", types.size(), entities.size(), (end - start));
         } catch (IOException e) {
             throw new EntityStoreException("Error opening yaml store", e);
         }
@@ -100,7 +104,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
 
-        LOG.info("loading files from {}", dir);
+        LOG.debug("loading files from {}", dir);
 
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);

@@ -14,6 +14,8 @@ import com.vordel.es.EntityStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.System.currentTimeMillis;
+
 public class ConvertToYamlStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvertToYamlStore.class);
@@ -24,7 +26,11 @@ public class ConvertToYamlStore {
 
     public ConvertToYamlStore(String url, Properties credentials) {
         es = EntityStoreFactory.createESForURL(url);
+        long start = currentTimeMillis();
         es.connect(url, credentials);
+        long end = currentTimeMillis();
+        LOGGER.info("Loaded ES in {}ms", (end - start));
+
         typeManager = new TypeManager(es);
         entityManager = new EntityManager(es, typeManager.getTypes());
     }

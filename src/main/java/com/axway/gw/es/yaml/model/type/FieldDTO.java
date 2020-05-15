@@ -12,7 +12,7 @@ public class FieldDTO {
     private String name;
     private String type;
     private String defaultValue;
-    private String cardinality;
+    private Object cardinality;
     @JsonProperty("isKey")
     private boolean keyField;
 
@@ -26,9 +26,9 @@ public class FieldDTO {
         if (fieldType.isSoftRefType())
             fieldTypeName = fieldTypeName.replace("^", "@");  // no supporting softrefs in yaml es
         this.type = fieldTypeName;
-        this.cardinality = fieldType.getCardinality().toString();
+        this.cardinality = fieldType.getCardinality();
         this.defaultValue = fieldType.getDefault();
-        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) { // why do types use true/false and entities sometimes 1/0 ?
+        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) {
 			switch (fieldType.getDefault()) {
 				case "0" : defaultValue = "false"; break;
 				case "1" : defaultValue = "true"; break;
@@ -64,11 +64,11 @@ public class FieldDTO {
         return this;
     }
 
-    public String getCardinality() {
+    public Object getCardinality() {
         return cardinality;
     }
 
-    public FieldDTO setCardinality(String cardinality) {
+    public FieldDTO setCardinality(Object cardinality) {
         this.cardinality = cardinality;
         return this;
     }

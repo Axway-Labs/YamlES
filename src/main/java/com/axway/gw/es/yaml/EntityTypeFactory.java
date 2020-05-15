@@ -4,13 +4,12 @@ import com.axway.gw.es.yaml.model.type.ConstantFieldDTO;
 import com.axway.gw.es.yaml.model.type.FieldDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.vordel.es.ConstantFieldType;
+import com.vordel.es.ESPK;
 import com.vordel.es.FieldType;
 import com.vordel.es.Value;
 import com.vordel.es.impl.ConstantField;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class EntityTypeFactory {
 
@@ -61,7 +60,7 @@ public final class EntityTypeFactory {
         for (Map.Entry<String, FieldDTO> entry : typeDTO.getFields().entrySet()) {
             FieldDTO field = entry.getValue();
             field.setName(entry.getKey());
-            FieldType ft = new YamlFieldType(field.getType(), field.getCardinality(), new ArrayList<>());
+            FieldType ft = new YamlFieldType(field.getType(), field.getCardinality(), Collections.singletonList( new Value((String) null))); // there must be one value even is null
             type.addFieldType(field.getName(), ft);
             if (field.isKeyField())
                 type.addKeyFieldName(field.getName());
