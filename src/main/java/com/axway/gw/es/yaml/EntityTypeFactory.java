@@ -45,9 +45,8 @@ public final class EntityTypeFactory {
             ConstantField constantField = createConstantField(YamlConstantFieldsNames.CLASS, "string", typeDTO.getClazz());
             type.addConstantField(constantField);
         }
-        //if(typeDTO.getLoadOrder() != null && typeDTO.getLoadOrder() != 0)
-        {
-            ConstantField constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER, "integer", typeDTO.getLoadOrder() == null ? "0" : Integer.toString(typeDTO.getLoadOrder()));
+        if(typeDTO.getLoadOrder() != null && typeDTO.getLoadOrder() != 0) {
+            ConstantField constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER, "integer", Integer.toString(typeDTO.getLoadOrder()));
             type.addConstantField(constantField);
         }
 

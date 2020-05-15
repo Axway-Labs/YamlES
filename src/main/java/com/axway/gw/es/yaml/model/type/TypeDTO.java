@@ -3,11 +3,9 @@ package com.axway.gw.es.yaml.model.type;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vordel.es.ConstantFieldType;
+import com.vordel.es.FieldType;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.axway.gw.es.yaml.YamlConstantFieldsNames.*;
 
@@ -80,15 +78,11 @@ public class TypeDTO {
         if (field == null && parent != null) {
             return parent.isDefaultValue(fieldName, fieldValue);
         } else if (field != null) {
-            if ("boolean".equals(field.getType())) {
-                switch (fieldValue) {
-                    case "0" : fieldValue = "false"; break;
-                    case "1" : fieldValue = "true"; break;
-                    default:
-                }
-            }
             String defaultValue = field.getDefaultValue();
-            return defaultValue != null && defaultValue.equals(fieldValue);
+            if (FieldType.BOOLEAN.equals(field.getType())) {
+                return Objects.equals(FieldType.getBooleanValue(defaultValue), FieldType.getBooleanValue(fieldValue));
+            }
+            return Objects.equals(defaultValue, fieldValue);
         } else {
             return false;
         }

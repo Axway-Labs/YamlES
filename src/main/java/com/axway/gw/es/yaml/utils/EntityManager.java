@@ -4,6 +4,7 @@ import com.axway.gw.es.yaml.YamlEntityStore;
 import com.axway.gw.es.yaml.model.entity.EntityDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.vordel.es.*;
+import com.vordel.es.impl.ConstantField;
 import com.vordel.es.xes.PortableESPK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,31 +149,34 @@ public class EntityManager {
         }
     }
 
-    private EntityDTO yamlize(Entity value, boolean allowChildren) {
-        LOGGER.debug("Yamlize {}", value.getPK());
-        EntityDTO ye = new EntityDTO();
-        ye.getMeta().setType(value.getType().getName()); // may want to change this to the directory location of the type?
-        ye.getMeta().setTypeDTO(types.get(ye.getMeta().getType()));
+    private EntityDTO yamlize(Entity entity, boolean allowChildren) {
+
+        LOGGER.debug("Yamlize {}", entity.getPK());
+
+        final String entityName = entity.getType().getName();
+
+        EntityDTO entityDTO = new EntityDTO();
+        entityDTO.getMeta().setType(entityName); // may want to change this to the directory location of the type?
+        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
         // deal with pk for this entity
-        ye.setKey(getPath(value.getPK()));
+        entityDTO.setKey(getPath(entity.getPK()));
         // children?
-        ye.setAllowsChildren(allowChildren && isAllowsChildren(value));
+        entityDTO.setAllowsChildren(allowChildren && isAllowsChildren(entity));
         // fields
-        setFields(value, ye);
-        setReferences(value, ye);
+        setFields(entity, entityDTO);
+        setReferences(entity, entityDTO);
 
-        if (!ye.isAllowsChildren()) {
-            for (ESPK childPK : es.listChildren(value.getPK(), null)) {
+        if (!entityDTO.isAllowsChildren()) {
+            for (ESPK childPK : es.listChildren(entity.getPK(), null)) {
                 inlined.add(childPK);
-
                 Entity child = getEntity(childPK);
-                EntityDTO ychild = yamlize(child, false);
-                ye.addChild(ychild);
-                ychild.setKey(null);
+                EntityDTO childEntityDTO = yamlize(child, false);
+                entityDTO.addChild(childEntityDTO);
+                childEntityDTO.setKey(null);
             }
         }
 
-        return ye;
+        return entityDTO;
     }
 
 
@@ -273,20 +277,25 @@ public class EntityManager {
         entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
-    private void setFields(Entity value, EntityDTO ye) {
-        Field[] allFields = value.getAllFields();
-        List<Field> refs = value.getReferenceFields();
-        for (Field f : allFields) {
-            if (!refs.contains(f)) { // not a reference
-                String fval = value.getStringValue(f.getName());
-                if (!types.get(ye.getMeta().getType()).isDefaultValue(f.getName(), fval)) {
-                    ye.addFieldValue(f.getName(), fval);
+    private void setFields(Entity entity, EntityDTO entityDTO) {
+        Field[] allFields = entity.getAllFields();
+        List<Field> refs = entity.getReferenceFields();
+        for (Field field : allFields) {
+            if (!refs.contains(field)) { // not a reference
+                final String fieldName = field.getName();
+                String fieldValue = entity.getStringValue(fieldName);
+                if (field instanceof ConstantField) {
+                    if (!isDefaultValue((ConstantField) field, fieldValue)) {
+                        entityDTO.addFieldValue(fieldName, fieldValue);
+                    }
+                } else if (!types.get(entityDTO.getMeta().getType()).isDefaultValue(fieldName, fieldValue)) {
+                    entityDTO.addFieldValue(fieldName, fieldValue);
                 }
             }
         }
     }
 
-    private boolean isDefaultValue(Field field, String fieldValue) {
+    private boolean isDefaultValue(ConstantField field, String fieldValue) {
         final String defaultValue = field.getType().getDefault();
         boolean isDefaultValue = Objects.equals(fieldValue, defaultValue);
         if (FieldType.BOOLEAN.equals(field.getType().getType())) {

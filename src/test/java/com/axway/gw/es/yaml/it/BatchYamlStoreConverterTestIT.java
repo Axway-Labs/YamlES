@@ -25,7 +25,6 @@ public class BatchYamlStoreConverterTestIT {
             "TeamDevelopmentAPI",
             "TeamDevelopmentSettings",
             "TeamDevelopmentSettingsAPIM"})
-    @Disabled
     public void convertFactoryTemplate(String project) throws InterruptedException, IOException {
 
         final EntityStore sourceES = ConvertToYamlStore.convert("federated:file:" + BatchYamlStoreConverterTestIT.class.getResource("/apiprojects/" + project + "/configs.xml").getFile(), YAML_OUTPUT_DIR + project);

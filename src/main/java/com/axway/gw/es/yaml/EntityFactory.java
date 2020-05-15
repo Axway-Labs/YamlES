@@ -53,7 +53,6 @@ public class EntityFactory {
         // pk
         ESPK pk = parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
         entity.setPK(pk);
-
         entity.setParentPK(parentPK);
         return entity;
     }
@@ -61,8 +60,8 @@ public class EntityFactory {
     private static void processField(File dir, EntityType type, YamlStoreEntity entity, String rawFieldName, String fieldValue) throws IOException {
         String fieldName = StringUtils.substringBefore(rawFieldName, "#");
 
-        FieldType ft = type.getFieldType(fieldName);
-        if (ft.isRefType() || ft.isSoftRefType()) {
+        FieldType fieldType = type.getFieldType(fieldName);
+        if (fieldType.isRefType() || fieldType.isSoftRefType()) {
             entity.setReferenceField(fieldName, new YamlPK(fieldValue));
         } else {
             String content = fieldValue;
