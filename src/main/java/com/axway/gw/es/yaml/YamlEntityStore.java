@@ -25,9 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static com.axway.gw.es.yaml.tools.EntityManager.METADATA_FILENAME;
-import static com.axway.gw.es.yaml.tools.EntityManager.YAML_EXTENSION;
-import static com.axway.gw.es.yaml.tools.TypeManager.TYPES_FILE;
+import static com.axway.gw.es.yaml.utils.EntityManager.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.utils.EntityManager.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.utils.TypeManager.TYPES_FILE;
 
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
@@ -169,7 +169,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
         types.put(typeDTO.getName(), typeDTO);
-        YamlEntityType type = YamlEntityType.convert(typeDTO);
+        YamlEntityType type = EntityTypeFactory.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
         for (TypeDTO yChild : typeDTO.getChildren()) {

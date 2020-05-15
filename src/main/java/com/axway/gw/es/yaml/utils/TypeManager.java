@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.tools;
+package com.axway.gw.es.yaml.utils;
 
 import com.axway.gw.es.yaml.model.type.FieldDTO;
 import com.axway.gw.es.yaml.model.type.TypeDTO;

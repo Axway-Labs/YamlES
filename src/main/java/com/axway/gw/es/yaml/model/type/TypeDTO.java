@@ -61,13 +61,13 @@ public class TypeDTO {
     public void addConstant(String name, ConstantFieldType ft) {
         switch (name) {
             case VERSION:
-                version = Integer.parseInt(ft.getDefaultValues().get(0).getData());
+                version = Integer.parseInt(ft.getDefault());
                 return;
             case CLASS:
-                clazz = ft.getDefaultValues().get(0).getData();
+                clazz = ft.getDefault();
                 return;
             case LOAD_ORDER:
-                loadOrder = Integer.parseInt(ft.getDefaultValues().get(0).getData());
+                loadOrder = Integer.parseInt(ft.getDefault());
                 return;
             default:
                 ConstantFieldDTO f = new ConstantFieldDTO(name, ft);
@@ -135,6 +135,7 @@ public class TypeDTO {
         return this;
     }
 
+    @JsonIgnore
     public String getApiVersion() {
         return API_VERSION;
     }

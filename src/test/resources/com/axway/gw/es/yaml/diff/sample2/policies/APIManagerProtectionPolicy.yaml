@@ -1,0 +1,202 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  description: ""
+  name: "API Manager Protection Policy"
+  start: "Disable Monitoring"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Is this Root (Valid Session)_:
+    meta:
+      type: "CompareAttributeFilter"
+      _version: "0"
+    fields:
+      name: "Is this Root (Valid Session)?"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/API\
+        \ Manager Home Page"
+      failureNode: "Policies/API Manager Policies/API Manager Protection Policy/Call\
+        \ internal service"
+    logging:
+      logMaskType: "FILTER"
+      logMask: "0"
+      category: "System/Filter Categories/miscellaneous"
+    children:
+      ${http.request.path}$IS$_:
+        meta:
+          type: "AttributeCompare"
+          _version: "1"
+        fields:
+          attrName: "${http.request.path}"
+          expression: "/"
+          matchType: "IS"
+  Query String Exists_:
+    meta:
+      type: "CompareAttributeFilter"
+      _version: "0"
+    fields:
+      name: "Query String Exists?"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/HTTP\
+        \ Redirect"
+      failureNode: "Policies/API Manager Policies/API Manager Protection Policy/Load\
+        \ API Manager Login Page"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+    children:
+      ${http.raw.querystring}$MATCHES$._:
+        meta:
+          type: "AttributeCompare"
+          _version: "1"
+        fields:
+          attrName: "${http.raw.querystring}"
+          expression: ".*"
+          matchType: "MATCHES"
+  Load API Manager Login Page:
+    meta:
+      type: "LoadFileFilter"
+      _version: "2"
+    fields:
+      completeDir: ""
+      fileIn: "${environment.VDISTDIR}/webapps/apiportal/login.html"
+      inFileContentType: "text/html"
+      name: "Load API Manager Login Page"
+      outDir: ""
+      outPrefix: ""
+      outSuffix: ""
+      treatFileAs: "CONTENT_TYPE"
+      workDir: ""
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Send\
+        \ Login Page"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+  Add Secure Headers:
+    meta:
+      type: "CircuitDelegateFilter"
+      _version: "1"
+    fields:
+      circuitPK: "Policies/API Manager Policies/Secure Headers"
+      name: "Add Secure Headers"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Check\
+        \ Session"
+    logging:
+      logFatal: "Error in calling policy shortcut circuit. Error: ${circuit.exception}"
+      logFailure: "Failed in calling policy shortcut"
+      logSuccess: "Success in calling policy shortcut"
+      category: "System/Filter Categories/miscellaneous"
+  Is This Root or Home_:
+    meta:
+      type: "CompareAttributeFilter"
+      _version: "0"
+    fields:
+      matchingRule: "MATCH_ONE"
+      name: "Is This Root or Home?"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Query\
+        \ String Exists_"
+      failureNode: "Policies/API Manager Policies/API Manager Protection Policy/HTTP\
+        \ Redirect"
+    logging:
+      logMaskType: "FILTER"
+      logMask: "0"
+      category: "System/Filter Categories/miscellaneous"
+    children:
+      ${http.request.path}$IS$_:
+        meta:
+          type: "AttributeCompare"
+          _version: "1"
+        fields:
+          attrName: "${http.request.path}"
+          expression: "/"
+          matchType: "IS"
+      ${http.request.path}$IS$_home:
+        meta:
+          type: "AttributeCompare"
+          _version: "1"
+        fields:
+          attrName: "${http.request.path}"
+          expression: "/home"
+          matchType: "IS"
+  API Manager Home Page:
+    meta:
+      type: "RedirectFilter"
+      _version: "0"
+    fields:
+      content: "API Manager Home Page"
+      httpResponseStatus: "302"
+      name: "API Manager Home Page"
+      outputContentType: "text/plain"
+      url: "/home"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+  Check Session:
+    meta:
+      type: "CheckSessionFilter"
+      _version: "0"
+    fields:
+      cookie: "APIMANAGERSTATIC"
+      name: "Check Session"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Is\
+        \ this Root (Valid Session)_"
+      failureNode: "Policies/API Manager Policies/API Manager Protection Policy/Is\
+        \ This Root or Home_"
+    logging:
+      logMaskType: "FILTER"
+      logMask: "0"
+      category: "System/Filter Categories/authentication"
+  HTTP Redirect:
+    meta:
+      type: "RedirectFilter"
+      _version: "0"
+    fields:
+      content: "<p>Please Login</p>"
+      httpResponseStatus: "302"
+      name: "HTTP Redirect"
+      outputContentType: "text/html"
+      url: "/"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+  Disable Monitoring:
+    meta:
+      type: "SetAttributeFilter"
+      _version: "0"
+    fields:
+      attributeValue: "false"
+      messageAttribute: "monitoring.enabled"
+      name: "Disable Monitoring"
+    routing:
+      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Add\
+        \ Secure Headers"
+    logging:
+      logFatal: "Error while setting the attribute value. Error: ${circuit.exception}"
+      logFailure: "Failed to set the attribute value"
+      logSuccess: "Set the attribute value"
+      category: "System/Filter Categories/miscellaneous"
+  Call internal service:
+    meta:
+      type: "ProtocolDelegateFilter"
+      _version: "1"
+    fields:
+      name: "Call internal service"
+    logging:
+      logFatal: "Error in calling protocol. Error: ${circuit.exception}"
+      logFailure: "Failed in calling protocol"
+      logSuccess: "Success in calling protocol"
+      category: "System/Filter Categories/miscellaneous"
+  Send Login Page:
+    meta:
+      type: "Reflector"
+      _version: "0"
+    fields:
+      name: "Send Login Page"
+    logging:
+      logFatal: "Error occurred while echoing the message. Error: ${circuit.exception}"
+      logFailure: "Failed to echo back the message"
+      logSuccess: "Successfully echoed back the message"
+      category: "System/Filter Categories/miscellaneous"

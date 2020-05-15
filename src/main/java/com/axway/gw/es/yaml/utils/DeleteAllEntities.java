@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.tools;
+package com.axway.gw.es.yaml.utils;
 
 import com.vordel.es.*;
 import com.vordel.es.util.ShorthandKeyFinder;

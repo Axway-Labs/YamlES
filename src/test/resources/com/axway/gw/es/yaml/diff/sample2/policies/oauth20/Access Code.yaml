@@ -1,0 +1,35 @@
+---
+meta:
+  type: "FilterCircuit"
+  _version: "4"
+fields:
+  name: "Access Code"
+  start: "Exchange AuthZ Code for Access Token"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Create an Open ID Connect ID Token:
+    meta:
+      type: "CreateIDTokenFilter"
+      _version: "0"
+    fields:
+      jwtSigner: "Environment Configuration/Certificate Store/CN=Change this for production"
+      name: "Create an Open ID Connect ID Token"
+    logging:
+      category: "System/Filter Categories/miscellaneous"
+  Exchange AuthZ Code for Access Token:
+    meta:
+      type: "AccessCodeGrantFilter"
+      _version: "0"
+    fields:
+      authzCodeCache: "Libraries/OAuth2 Stores/Authorization Code Stores/Authz Code\
+        \ Store"
+      locationOfClientDetails: "QueryString"
+      name: "Exchange AuthZ Code for Access Token"
+      tokenStore: "Libraries/OAuth2 Stores/Access Token Stores/OAuth Access Token\
+        \ Store"
+    routing:
+      successNode: "Policies/OAuth 2.0/Access Token Service/Access Code/Create an\
+        \ Open ID Connect ID Token"
+    logging:
+      category: "System/Filter Categories/miscellaneous"

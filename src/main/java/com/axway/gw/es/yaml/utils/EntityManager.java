@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.tools;
+package com.axway.gw.es.yaml.utils;
 
 import com.axway.gw.es.yaml.YamlEntityStore;
 import com.axway.gw.es.yaml.model.entity.EntityDTO;
@@ -286,6 +286,15 @@ public class EntityManager {
         }
     }
 
+    private boolean isDefaultValue(Field field, String fieldValue) {
+        final String defaultValue = field.getType().getDefault();
+        boolean isDefaultValue = Objects.equals(fieldValue, defaultValue);
+        if (FieldType.BOOLEAN.equals(field.getType().getType())) {
+            isDefaultValue = Objects.equals(FieldType.getBooleanValue(defaultValue), FieldType.getBooleanValue(fieldValue));
+        }
+        return isDefaultValue;
+    }
+
     private static boolean isLateBoundReference(final ESPK pk) {
         if (pk instanceof PortableESPK) {
             final PortableESPK portableKey = (PortableESPK) pk;
@@ -300,8 +309,8 @@ public class EntityManager {
     }
 
     private void setReferences(Entity value, EntityDTO ye) {
-        List<com.vordel.es.Field> refs = value.getReferenceFields();
-        for (com.vordel.es.Field field : refs) {
+        List<Field> refs = value.getReferenceFields();
+        for (Field field : refs) {
             ESPK ref = field.getReference(); // just deal with single at the moment
             if (!ref.equals(EntityStore.ES_NULL_PK)) {
                 String key;

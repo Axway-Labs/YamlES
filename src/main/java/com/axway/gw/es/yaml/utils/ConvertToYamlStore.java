@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.tools;
+package com.axway.gw.es.yaml.utils;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +27,10 @@ public class ConvertToYamlStore {
         es.connect(url, credentials);
         typeManager = new TypeManager(es);
         entityManager = new EntityManager(es, typeManager.getTypes());
+    }
+
+    public EntityStore getInputEntityStore() {
+        return es;
     }
 
     private void delete(String location) {
@@ -62,7 +66,7 @@ public class ConvertToYamlStore {
         convert(inputES, yamlDir);
     }
 
-    public static void convert(String inputES, String yamlDir) throws InterruptedException, IOException {
+    public static EntityStore convert(String inputES, String yamlDir) throws InterruptedException, IOException {
         String whereToWriteEntities = yamlDir + "/";
         ConvertToYamlStore converter = new ConvertToYamlStore(inputES, new Properties());
         LOGGER.info("Deleting folders");
@@ -71,5 +75,6 @@ public class ConvertToYamlStore {
         converter.dumpTypesAsYaml(yamlDir);
         converter.dumpEntitiesAsYaml(whereToWriteEntities);
         LOGGER.info("Successfully extracted yaml files.");
+        return converter.getInputEntityStore();
     }
 }

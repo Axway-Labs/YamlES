@@ -1,0 +1,7 @@
+---
+meta:
+  type: "Root"
+fields:
+  tagValue: "sample-1"
+  name: "Test Components"
+  tagName: "sample"

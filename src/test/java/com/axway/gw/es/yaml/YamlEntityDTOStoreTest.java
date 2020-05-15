@@ -1,30 +1,29 @@
 package com.axway.gw.es.yaml;
 
-import java.io.File;
-import java.io.IOException;
-
-import java.net.URL;
-import java.util.Collection;
-
-import com.vordel.es.*;
-import org.junit.jupiter.api.Assertions;
+import com.vordel.es.ESPK;
+import com.vordel.es.Entity;
+import com.vordel.es.EntityStoreException;
+import com.vordel.es.Field;
 import org.junit.jupiter.api.BeforeEach;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+
+import static com.axway.gw.es.yaml.utils.ESTestsUtil.getFileFromClasspath;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class YamlEntityDTOStoreTest {
 
     // At this place, also the META-INF/Types.yaml is expected
-    private static final String testPackage = "/com/axway/gw/es/yaml/";
+    private static final String testPackage = "/com/axway/gw/es/yaml/noroot/";
 
     private YamlEntityStore es;
 
     @BeforeEach
-    void setupEntityStoreToTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, EntityStoreException, IOException {
+    void setupEntityStoreToTest() throws SecurityException, IllegalArgumentException, EntityStoreException, IOException {
         es = new YamlEntityStore();
         es.setRootLocation(new File(YamlEntityStore.class.getResource(testPackage).getPath()));
         // Entity need to load types to be able to create an Entity
@@ -46,7 +45,7 @@ public class YamlEntityDTOStoreTest {
 
     public void loadSinglePolicy(String file, String startFieldValue, int children, String startNodeType) throws IOException {
 
-        Entity e = es.createEntity(getFileFromClasspath(file), null);
+        Entity e = es.createEntity(getFileFromClasspath(testPackage, file), null);
         assertThat(e.getField("start").getValueList().get(0).toString()).isEqualTo(startFieldValue);
 
 
@@ -67,11 +66,4 @@ public class YamlEntityDTOStoreTest {
     }
 
 
-    private File getFileFromClasspath(String filename) {
-        URL url = YamlEntityDTOStoreTest.class.getResource(testPackage + filename);
-        assertThat(url).withFailMessage("Test file: " + filename + " doesn't exists.").isNotNull();
-        File file = new File(url.getPath().replaceAll("%20", " "));
-        assertThat(file).exists();
-        return file;
-    }
 }

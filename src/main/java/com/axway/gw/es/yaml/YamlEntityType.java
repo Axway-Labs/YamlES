@@ -1,8 +1,5 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.model.type.ConstantFieldDTO;
-import com.axway.gw.es.yaml.model.type.FieldDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vordel.common.xml.XmlTransformerCache;
 import com.vordel.es.*;
@@ -38,7 +35,7 @@ public class YamlEntityType implements EntityType {
     // A Map of all field definitions for this type.
     private final Map<String, FieldType> fieldTypes = new LinkedHashMap<>();
     // A Map of names to constant fields at this level in the type hierarchy
-    public final Map<String, ConstantField> constants = new LinkedHashMap<>();
+    private final Map<String, ConstantField> constants = new LinkedHashMap<>();
     // A Set of all fields which have default values
     private final Set<String> defaultedFields = new LinkedHashSet<>();
     // A Set of all optional fields which have no default values
@@ -49,64 +46,8 @@ public class YamlEntityType implements EntityType {
     // cached encoded xml typedoc
     private byte[] cachedDoc;
 
-    public static YamlEntityType convert(String name, TypeDTO t) {
-        YamlEntityType type = YamlEntityType.convert(t);
-        type.setName(name);
-        return type;
-    }
-
-    public static class FieldTypeInner extends com.vordel.es.FieldType {
-        public FieldTypeInner(String name, Object x, List<Value> v) {
-            super(name, x, v);
-        }
-    }
-
-    public static class ConstantFieldTypeInner extends com.vordel.es.ConstantFieldType {
-        public ConstantFieldTypeInner(String name, Value v) {
-            super(name, v);
-        }
-    }
-
-    public static YamlEntityType convert(TypeDTO typeDTO) {
-        YamlEntityType type = new YamlEntityType();
-        type.abstractEntity = typeDTO.isAbstract();
-        type.entityName = typeDTO.getName();
 
 
-        ConstantField constantField = createConstantField(YamlConstantFieldsNames.VERSION, "integer", typeDTO.getVersion() == null ? "0" : Integer.toString(typeDTO.getVersion()));
-        type.constants.put(constantField.getName(), constantField);
-        constantField = createConstantField(YamlConstantFieldsNames.CLASS, "string", typeDTO.getClazz());
-        type.constants.put(constantField.getName(), constantField);
-        constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER, "integer", typeDTO.getLoadOrder() == null ? "0" : Integer.toString(typeDTO.getLoadOrder()));
-        type.constants.put(constantField.getName(), constantField);
-
-        // constants
-        for (Map.Entry<String, ConstantFieldDTO> entry : typeDTO.getConstants().entrySet()) {
-            ConstantFieldDTO constant = entry.getValue();
-            constant.setName(entry.getKey());
-            ConstantField field = createConstantField(constant.getName(), constant.getType(), constant.getValue());
-            type.constants.put(constant.getName(), field);
-        }
-        // fields
-        for (Map.Entry<String, FieldDTO> entry : typeDTO.getFields().entrySet()) {
-            FieldDTO field = entry.getValue();
-            field.setName(entry.getKey());
-            FieldType ft = new FieldTypeInner(field.getType(), field.getCardinality(), new ArrayList<>());
-            type.fieldTypes.put(field.getName(), ft);
-            if (field.isKeyField())
-                type.keyFieldNames.add(field.getName());
-        }
-        // components
-        for (Map.Entry<String, String> entry : typeDTO.getComponents().entrySet()) {
-            type.componentTypes.put(entry.getKey(), entry.getValue());
-        }
-        return type;
-    }
-
-    private static ConstantField createConstantField(String name, String type, String value) {
-        ConstantFieldType cft = new ConstantFieldTypeInner(type, new Value(value));
-        return new ConstantField(cft, name);
-    }
 
 
     @Override
@@ -331,9 +272,6 @@ public class YamlEntityType implements EntityType {
         return null;
     }
 
-    public void setName(String name) {
-        this.entityName = name;
-    }
 
     private void getKeyFieldNamesRecurse(List<String> names) {
         if (superType != null)
@@ -369,10 +307,6 @@ public class YamlEntityType implements EntityType {
     @Override
     public EntityType getSuperType() {
         return superType;
-    }
-
-    public void setSuperType(YamlEntityType superType) {
-        this.superType = superType;
     }
 
     /**
@@ -442,6 +376,35 @@ public class YamlEntityType implements EntityType {
             cachedDoc = initCacheDoc();
         }
         os.write(cachedDoc);
+    }
+
+    void setName(String name) {
+        this.entityName = name;
+    }
+
+    YamlEntityType setAbstractEntity(boolean abstractEntity) {
+        this.abstractEntity = abstractEntity;
+        return this;
+    }
+
+    void setSuperType(YamlEntityType superType) {
+        this.superType = superType;
+    }
+
+    void addConstantField(ConstantField constantField) {
+        this.constants.put(constantField.getName(), constantField);
+    }
+
+    void addFieldType(String fieldName, FieldType fieldType) {
+        this.fieldTypes.put(fieldName, fieldType);
+    }
+
+    void addKeyFieldName(String keyFieldName) {
+        this.keyFieldNames.add(keyFieldName);
+    }
+
+    void addComponentType(String key, String value) {
+        this.componentTypes.put(key, value);
     }
 
     private byte[] initCacheDoc() throws IOException {
