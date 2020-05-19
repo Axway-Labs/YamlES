@@ -16,8 +16,8 @@ public class EntityStoreESPKMapper<S, T> {
     public static final String KEY_MAPPING_FILENAME = HIDDEN_FILE_PREFIX +"federated-to-yaml-espk"+YAML_EXTENSION;
     Map<S, T> keyMapping = new LinkedHashMap<>();
 
-    public void addKeyPair(String sourceKey, String targetKey) {
-
+    public void addKeyPair(S sourceKey, T targetKey) {
+        keyMapping.put(sourceKey, targetKey);
     }
 
     public void writeFederatedToYamlPkMapping(String rootDir) throws IOException {

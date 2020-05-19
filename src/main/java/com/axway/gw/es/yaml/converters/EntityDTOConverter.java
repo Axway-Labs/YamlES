@@ -333,10 +333,9 @@ public class EntityDTOConverter {
 
 
     public void writeEntities(File dir) throws IOException {
-        if (!dir.exists())
-            dir.mkdirs();
+        createDirectoryIfNeeded(dir);
 
-        // must provide dir
+        // must provide dir (this happens when a file already exists)
         if (!dir.isDirectory())
             throw new IOException("Must provide a directory for YAML output");
 
@@ -349,12 +348,12 @@ public class EntityDTOConverter {
     private void dumpAsYaml(File out, EntityDTO entityDTO) throws IOException {
 
         if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
-            out.mkdirs();
+            createDirectoryIfNeeded(out);
             YamlEntityStore.YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
         } else { // handle as file
             String filename = out.getPath() + YAML_EXTENSION;
             File f = new File(filename);
-            f.getParentFile().mkdirs();
+            createDirectoryIfNeeded(f.getParentFile());
 
             extractContent(entityDTO, f);
 
@@ -415,20 +414,15 @@ public class EntityDTOConverter {
 
         Path path = dir.toPath().resolve(fileName);
         File parentDir = path.getParent().toFile();
-        if (!parentDir.exists()) {
-            parentDir.mkdir();
-        }
+        createDirectoryIfNeeded(parentDir);
         Files.write(path, data);
 
         entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
-    // TODO
-    private static void createDirectory(File directory) throws IOException {
-        if (!directory.exists()) {
-            if (!directory.mkdirs()) {
-                throw new IOException("Could not create directory:" + directory);
-            }
+    private static void createDirectoryIfNeeded(File directory) throws IOException {
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IOException("Could not create directory:" + directory);
         }
     }
 
