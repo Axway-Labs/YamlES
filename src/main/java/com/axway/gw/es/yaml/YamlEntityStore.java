@@ -1,7 +1,7 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.model.entity.EntityDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.dto.entity.EntityDTO;
+import com.axway.gw.es.yaml.dto.type.TypeDTO;
 import com.axway.gw.es.yaml.util.IndexedEntityTreeDelegate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +11,7 @@ import com.vordel.es.impl.AbstractTypeStore;
 import com.vordel.es.impl.EntityTypeMap;
 import com.vordel.es.provider.file.IndexedEntityTree;
 import com.vordel.es.util.ESPKCollection;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +21,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.nio.file.Files;
+import java.util.*;
 
-import static com.axway.gw.es.yaml.utils.EntityManager.METADATA_FILENAME;
-import static com.axway.gw.es.yaml.utils.EntityManager.YAML_EXTENSION;
-import static com.axway.gw.es.yaml.utils.TypeManager.TYPES_FILE;
+import static com.axway.gw.es.yaml.converters.EntityDTOConverter.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.converters.EntityDTOConverter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.HIDDEN_FILE_PREFIX;
+import static com.axway.gw.es.yaml.converters.EntityTypeDTOConverter.TYPES_FILE;
 import static java.lang.System.currentTimeMillis;
 
 @SuppressWarnings("WeakerAccess")
@@ -44,7 +44,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     private File rootLocation;
-    private ESPK root;
+    private YamlPK root;
     private final Map<String, TypeDTO> types = new LinkedHashMap<>();
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
@@ -96,11 +96,11 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         try {
             root = loadEntities(rootLocation, root);
         } catch (IOException e) {
-            throw new EntityStoreException(e.getMessage());
+            throw new EntityStoreException("Could not load YAML Entity Store", e);
         }
     }
 
-    public ESPK loadEntities(File dir, ESPK parentPK) throws IOException {
+    public YamlPK loadEntities(File dir, YamlPK parentPK) throws IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
 
@@ -109,7 +109,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
         if (entity != null) {
-            parentPK = entity.getPK();
+            parentPK = (YamlPK)entity.getPK();
         }
 
         if (dir.toString().contains("Certificate Store")) {
@@ -119,8 +119,10 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         final File[] files = dir.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.toString().endsWith(METADATA_FILENAME) || file.toString().endsWith("META-INF")) {
-                    // skip over metadata.yaml
+                if (file.getName().startsWith(HIDDEN_FILE_PREFIX) || file.getPath().endsWith(METADATA_FILENAME) || file.getPath().endsWith("META-INF")) {
+                    // skip META-INF (where types are stored)
+                    // skip "__" prefixed files (a way to ignore some files)
+                    // skip over metadata.yaml when loading entities (see createParentEntity() )
                     continue;
                 }
                 if (file.isDirectory()) {
@@ -134,33 +136,78 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return parentPK;
     }
 
-    Entity createEntity(File file, ESPK parentPK) throws IOException {
+    YamlEntity createEntity(File file, YamlPK parentPK) throws IOException {
         EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
         File dir = file.getParentFile();
 
-        Entity entity = createEntity(entityDTO, parentPK, dir);
+        YamlEntity entity = createEntity(entityDTO, parentPK, dir);
 
         if (entityDTO.getChildren() != null) {
             for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                createEntity(entry.getValue(), entity.getPK(), dir);
+                createEntity(entry.getValue(), (YamlPK) entity.getPK(), dir);
             }
         }
         return entity;
     }
 
-    private Entity createEntity(EntityDTO entityDTO, ESPK parentPK, File dir) throws IOException {
+    private YamlEntity createEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
         entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
-        Entity entity = EntityFactory.convert(entityDTO, parentPK, this, dir);
+        YamlEntity entity = toYamlEntity(entityDTO, parentPK, dir);
         entities.add(parentPK, entity);
         return entity;
     }
 
-    private Entity createParentEntity(File dir, ESPK parentPK) throws IOException {
+    private YamlEntity createParentEntity(File dir, YamlPK parentPK) throws IOException {
         File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
             return createEntity(metadata, parentPK);
         }
         return null;
+    }
+
+    public YamlEntity toYamlEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
+        EntityType type = this.getTypeForName(entityDTO.getMeta().getType());
+        YamlEntity entity = new YamlEntity(type);
+
+        if (entityDTO.getFields() != null) {
+
+            // fields
+            for (Map.Entry<String, String> fieldEntry : entityDTO.getFields().entrySet()) {
+                if (type.isConstantField(fieldEntry.getKey())) {
+                    continue; // don't set constants
+                }
+
+                String rawFieldName = fieldEntry.getKey();
+                String fieldValue = fieldEntry.getValue();
+                String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+
+                FieldType fieldType = type.getFieldType(fieldName);
+                if (fieldType.isRefType() || fieldType.isSoftRefType()) {
+                    entity.setReferenceField(fieldName, new YamlPK(fieldValue));
+                } else {
+                    String content = fieldValue;
+                    if (rawFieldName.contains("#ref")) {
+                        byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
+                        if (rawFieldName.endsWith("#refbase64")) {
+                            content = Base64.getEncoder().encodeToString(data);
+                        } else {
+                            content = new String(data);
+                        }
+                    }
+                    entity.setField(fieldName, new Value[]{new Value(content)});
+                }
+            }
+        }
+
+        // pk
+        YamlPK pk = toYamlPk(entityDTO, parentPK);
+        entity.setPK(pk);
+        entity.setParentPK(parentPK);
+        return entity;
+    }
+
+    public static YamlPK toYamlPk(EntityDTO entityDTO, YamlPK parentPK) {
+        return parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
     }
 
     public void loadTypes() throws IOException {
@@ -173,7 +220,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
         types.put(typeDTO.getName(), typeDTO);
-        YamlEntityType type = EntityTypeFactory.convert(typeDTO);
+        YamlEntityType type = DTOToYamlESEntityTypeConverter.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
         for (TypeDTO yChild : typeDTO.getChildren()) {

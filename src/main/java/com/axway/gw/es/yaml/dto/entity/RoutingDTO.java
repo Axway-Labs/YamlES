@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.model.entity;
+package com.axway.gw.es.yaml.dto.entity;
 
 import java.util.Objects;
 

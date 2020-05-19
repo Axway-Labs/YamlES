@@ -1,6 +1,6 @@
-package com.axway.gw.es.yaml.model.entity;
+package com.axway.gw.es.yaml.dto.entity;
 
-import com.axway.gw.es.yaml.model.type.FieldDTO;
+import com.axway.gw.es.yaml.dto.type.FieldDTO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.LinkedHashMap;

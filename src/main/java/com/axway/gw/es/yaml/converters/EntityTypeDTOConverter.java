@@ -1,7 +1,7 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.converters;
 
-import com.axway.gw.es.yaml.model.type.FieldDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.dto.type.FieldDTO;
+import com.axway.gw.es.yaml.dto.type.TypeDTO;
 import com.vordel.es.ConstantFieldType;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityType;
@@ -18,8 +18,8 @@ import java.util.Map;
 import com.axway.gw.es.yaml.YamlEntityStore;
 
 
-public class TypeManager {
-    private static final Logger log = LoggerFactory.getLogger(TypeManager.class);
+public class EntityTypeDTOConverter {
+    private static final Logger log = LoggerFactory.getLogger(EntityTypeDTOConverter.class);
 
     public static final String TYPES_FILE = "Types.yaml";
 
@@ -28,7 +28,7 @@ public class TypeManager {
     private final TypeDTO baseType;
     private final EntityStore es;
 
-    public TypeManager(EntityStore es) {
+    public EntityTypeDTOConverter(EntityStore es) {
         this.es = es;
         EntityType t = es.getBaseType();
         baseType = loadTypes(t);

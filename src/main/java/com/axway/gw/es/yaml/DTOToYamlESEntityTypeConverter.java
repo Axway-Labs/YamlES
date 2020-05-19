@@ -1,19 +1,18 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.model.type.ConstantFieldDTO;
-import com.axway.gw.es.yaml.model.type.FieldDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.dto.type.ConstantFieldDTO;
+import com.axway.gw.es.yaml.dto.type.FieldDTO;
+import com.axway.gw.es.yaml.dto.type.TypeDTO;
 import com.vordel.es.ConstantFieldType;
-import com.vordel.es.ESPK;
 import com.vordel.es.FieldType;
 import com.vordel.es.Value;
 import com.vordel.es.impl.ConstantField;
 
 import java.util.*;
 
-public final class EntityTypeFactory {
+public final class DTOToYamlESEntityTypeConverter {
 
-    private EntityTypeFactory() {
+    private DTOToYamlESEntityTypeConverter() {
         // no op
     }
 

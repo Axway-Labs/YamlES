@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.converters;
 
 import com.axway.gw.es.yaml.YamlEntityStore;
 

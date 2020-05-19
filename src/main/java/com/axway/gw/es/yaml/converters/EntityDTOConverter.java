@@ -1,8 +1,9 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.converters;
+
 
 import com.axway.gw.es.yaml.YamlEntityStore;
-import com.axway.gw.es.yaml.model.entity.EntityDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.dto.entity.EntityDTO;
+import com.axway.gw.es.yaml.dto.type.TypeDTO;
 import com.vordel.es.*;
 import com.vordel.es.impl.ConstantField;
 import com.vordel.es.xes.PortableESPK;
@@ -16,11 +17,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class EntityManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(EntityManager.class);
+public class EntityDTOConverter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityDTOConverter.class);
 
     public static final String POLICIES = "Policies";
     public static final String APIS = "APIs";
@@ -125,31 +125,36 @@ public class EntityManager {
     private final Map<ESPK, Entity> entities = new ConcurrentHashMap<>();
     private final List<EntityDTO> mappedEntities = new ArrayList<>();
     private final Set<ESPK> inlined = new HashSet<>();
-    private final EntityStore es;
+    private final EntityStore sourceES;
     private final Map<String, TypeDTO> types;
 
-    public EntityManager(EntityStore es, Map<String, TypeDTO> types) {
-        this.es = es;
+    public EntityDTOConverter(EntityStore sourceES, Map<String, TypeDTO> types) {
+        this.sourceES = sourceES;
         this.types = types;
-        ESPK root = es.getRootPK();
-        loadEntities(root);
     }
 
-    public void writeEntities(File dir) throws IOException {
-        if (!dir.exists())
-            dir.mkdirs();
+    public void loadAndMapAll() {
+        ESPK root = sourceES.getRootPK();
+        mapAll(root);
+    }
 
-        // must provide dir
-        if (!dir.isDirectory())
-            throw new IOException("Must provide a directory for YAML output");
+    public void mapAll(ESPK pk) {
+        mapToDTO(pk);
+        Collection<ESPK> children = sourceES.listChildren(pk, null);
+        for (ESPK childPK : children)
+            mapAll(childPK);
+    }
 
-        for (EntityDTO ye : mappedEntities) {
-            // deal with pk for parent  entity
-            dumpAsYaml(new File(dir, ye.getKey()), ye);
+    private void mapToDTO(ESPK pk) {
+        if (inlined.contains(pk)) {
+            return;
         }
+        Entity entity = getEntity(pk);
+        EntityDTO entityDTO = mapToDTO(entity, true);
+        mappedEntities.add(entityDTO);
     }
 
-    private EntityDTO yamlize(Entity entity, boolean allowChildren) {
+    private EntityDTO mapToDTO(Entity entity, boolean allowChildren) {
 
         LOGGER.debug("Yamlize {}", entity.getPK());
 
@@ -167,114 +172,16 @@ public class EntityManager {
         setReferences(entity, entityDTO);
 
         if (!entityDTO.isAllowsChildren()) {
-            for (ESPK childPK : es.listChildren(entity.getPK(), null)) {
+            for (ESPK childPK : sourceES.listChildren(entity.getPK(), null)) {
                 inlined.add(childPK);
                 Entity child = getEntity(childPK);
-                EntityDTO childEntityDTO = yamlize(child, false);
+                EntityDTO childEntityDTO = mapToDTO(child, false);
                 entityDTO.addChild(childEntityDTO);
                 childEntityDTO.setKey(null);
             }
         }
 
         return entityDTO;
-    }
-
-
-    private String getTopLevel(EntityType type) {
-        String topLevel = ENTITIES_CATEGORIES.get(type.getName());
-        return topLevel == null ? DEFAULT_CATEGORY : topLevel;
-    }
-
-
-    private boolean isAllowsChildren(Entity value) {
-        return value.getType().allowsChildEntities()
-                && !INLINED_TYPES.contains(value.getType().getName())
-                &&
-                (value.getType().extendsType("NamedLoadableModule")
-                        || EXPANDED_TYPES.contains(value.getType().getName())
-                        || !value.getType().extendsType("NamedGroup")
-                        && !value.getType().extendsType("LoadableModule")
-                        && !value.getType().extendsType("Filter")
-                        && !value.getType().extendsType("KPSStore")
-                        && !value.getType().extendsType("KPSType")
-                );
-    }
-
-    private void dumpAsYaml(File out, EntityDTO entityDTO) throws IOException {
-
-        if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
-            out.mkdirs();
-            YamlEntityStore.YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
-        } else { // handle as file
-            String filename = out.getPath() + YAML_EXTENSION;
-            File f = new File(filename);
-            f.getParentFile().mkdirs();
-
-            extractContent(entityDTO, f);
-
-            YamlEntityStore.YAML_MAPPER.writeValue(f, entityDTO);
-        }
-
-    }
-
-    private void extractContent(EntityDTO entityDTO, File file) throws IOException {
-        if (entityDTO.getChildren() != null) {
-            for (EntityDTO yChild : entityDTO.getChildren().values()) {
-                extractContent(yChild, file);
-            }
-        }
-
-        File dir = file.getParentFile();
-        final String metaType = entityDTO.getMeta().getType();
-
-        switch (metaType) {
-            case "JavaScriptFilter":
-                String fileName = file.getName().replace(YAML_EXTENSION, "-Scripts/") + sanitizeFilename(entityDTO.getKeyDescription()) + "." + entityDTO.getFieldValue("engineName");
-                extractContent(entityDTO, dir, fileName, "script", false);
-                break;
-            case "Script":
-                extractContent(entityDTO, dir, entityDTO.getKeyDescription() + "." + entityDTO.getFields().get("engineName"), "script", false);
-                break;
-            case "Stylesheet":
-                extractContent(entityDTO, dir, entityDTO.getFields().get("URL") + ".xsl", "contents", true);
-                break;
-            case "Certificate":
-                extractContent(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".pem"), "key", true);
-                extractContent(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".crt"), "content", true);
-                break;
-            case "ResourceBlob":
-                String type = entityDTO.getFields().get("type");
-                if (Objects.equals(type, "schema")) {
-                    type = "xsd";
-                }
-                extractContent(entityDTO, dir, entityDTO.getFields().get("ID") + "." + type, "content", true);
-                break;
-            default:
-                LOGGER.debug("Nothing to extract from type {}", metaType);
-        }
-    }
-
-    private void extractContent(EntityDTO entityDTO, File dir, String fileName, String field, boolean base64Decode) throws IOException {
-        String content = entityDTO.getFields().remove(field);
-        if (content == null) {
-            return;
-        }
-
-        byte[] data;
-        if (base64Decode) {
-            data = Base64.getDecoder().decode(content.replaceAll("[\r?\n]", ""));
-        } else {
-            data = content.getBytes();
-        }
-
-        Path path = dir.toPath().resolve(fileName);
-        File parentDir = path.getParent().toFile();
-        if (!parentDir.exists()) {
-            parentDir.mkdir();
-        }
-        Files.write(path, data);
-
-        entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
 
     private void setFields(Entity entity, EntityDTO entityDTO) {
@@ -304,18 +211,51 @@ public class EntityManager {
         return isDefaultValue;
     }
 
-    private static boolean isLateBoundReference(final ESPK pk) {
-        if (pk instanceof PortableESPK) {
-            final PortableESPK portableKey = (PortableESPK) pk;
-            final boolean isLateBound = "_lateBoundReference".equals(portableKey.getTypeNameOfReferencedEntity());
-            if (isLateBound) {
-                LOGGER.info("Late bound reference to {}, expected at run-time", LOGGER.isInfoEnabled() ? portableKey.terse() : "");
-            }
-            return isLateBound;
-        }
-
-        return false;
+    public Entity getEntity(ESPK key) {
+        if (entities.containsKey(key))
+            return entities.get(key);
+        ESPK espk = EntityStoreDelegate.getEntityForKey(sourceES, key);
+        Entity e = sourceES.getEntity(espk);
+        entities.put(key, e);
+        return e;
     }
+
+    public List<Entity> pathToRoot(ESPK pk) {
+        List<Entity> path = new ArrayList<>();
+        if (pk == null)
+            return path;
+        while (!pk.equals(sourceES.getRootPK())) {
+            try {
+                Entity e = getEntity(pk);
+                path.add(0, e);
+                pk = e.getParentPK();
+            } catch (EntityStoreException p) {
+                LOGGER.trace("ESPK not found in current ES: {}", pk);
+            }
+        }
+        return path;
+    }
+
+
+    private String getTopLevel(EntityType type) {
+        String topLevel = ENTITIES_CATEGORIES.get(type.getName());
+        return topLevel == null ? DEFAULT_CATEGORY : topLevel;
+    }
+
+    private boolean isAllowsChildren(Entity value) {
+        return value.getType().allowsChildEntities()
+                && !INLINED_TYPES.contains(value.getType().getName())
+                &&
+                (value.getType().extendsType("NamedLoadableModule")
+                        || EXPANDED_TYPES.contains(value.getType().getName())
+                        || !value.getType().extendsType("NamedGroup")
+                        && !value.getType().extendsType("LoadableModule")
+                        && !value.getType().extendsType("Filter")
+                        && !value.getType().extendsType("KPSStore")
+                        && !value.getType().extendsType("KPSType")
+                );
+    }
+
 
     private void setReferences(Entity value, EntityDTO ye) {
         List<Field> refs = value.getReferenceFields();
@@ -336,6 +276,18 @@ public class EntityManager {
         }
     }
 
+    private boolean isLateBoundReference(final ESPK pk) {
+        if (pk instanceof PortableESPK) {
+            final PortableESPK portableKey = (PortableESPK) pk;
+            final boolean isLateBound = "_lateBoundReference".equals(portableKey.getTypeNameOfReferencedEntity());
+            if (isLateBound) {
+                LOGGER.info("Late bound reference to {}, expected at run-time", LOGGER.isInfoEnabled() ? portableKey.terse() : "");
+            }
+            return isLateBound;
+        }
+
+        return false;
+    }
 
     private String getPath(ESPK pk) {
         StringBuilder builder = new StringBuilder();
@@ -376,7 +328,108 @@ public class EntityManager {
             if (i < keyNames.length - 1)
                 b.append("$");
         }
-        return sanitizeFilename(b.toString());
+        return sanitize(b.toString());
+    }
+
+
+    public void writeEntities(File dir) throws IOException {
+        if (!dir.exists())
+            dir.mkdirs();
+
+        // must provide dir
+        if (!dir.isDirectory())
+            throw new IOException("Must provide a directory for YAML output");
+
+        for (EntityDTO ye : mappedEntities) {
+            // deal with pk for parent  entity
+            dumpAsYaml(new File(dir, ye.getKey()), ye);
+        }
+    }
+
+    private void dumpAsYaml(File out, EntityDTO entityDTO) throws IOException {
+
+        if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
+            out.mkdirs();
+            YamlEntityStore.YAML_MAPPER.writeValue(new File(out, METADATA_FILENAME), entityDTO);
+        } else { // handle as file
+            String filename = out.getPath() + YAML_EXTENSION;
+            File f = new File(filename);
+            f.getParentFile().mkdirs();
+
+            extractContent(entityDTO, f);
+
+            YamlEntityStore.YAML_MAPPER.writeValue(f, entityDTO);
+        }
+
+    }
+
+    private void extractContent(EntityDTO entityDTO, File file) throws IOException {
+        if (entityDTO.getChildren() != null) {
+            for (EntityDTO yChild : entityDTO.getChildren().values()) {
+                extractContent(yChild, file);
+            }
+        }
+
+        File dir = file.getParentFile();
+        final String metaType = entityDTO.getMeta().getType();
+
+        switch (metaType) {
+            case "JavaScriptFilter":
+                String fileName = file.getName().replace(YAML_EXTENSION, "-Scripts/") + sanitize(entityDTO.getKeyDescription()) + "." + entityDTO.getFieldValue("engineName");
+                writeContentToFile(entityDTO, dir, fileName, "script", false);
+                break;
+            case "Script":
+                writeContentToFile(entityDTO, dir, entityDTO.getKeyDescription() + "." + entityDTO.getFields().get("engineName"), "script", false);
+                break;
+            case "Stylesheet":
+                writeContentToFile(entityDTO, dir, entityDTO.getFields().get("URL") + ".xsl", "contents", true);
+                break;
+            case "Certificate":
+                writeContentToFile(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".pem"), "key", true);
+                writeContentToFile(entityDTO, dir, file.getName().replace(YAML_EXTENSION, ".crt"), "content", true);
+                break;
+            case "ResourceBlob":
+                String type = entityDTO.getFields().get("type");
+                if (Objects.equals(type, "schema")) {
+                    type = "xsd";
+                }
+                writeContentToFile(entityDTO, dir, entityDTO.getFields().get("ID") + "." + type, "content", true);
+                break;
+            default:
+                LOGGER.debug("Nothing to extract from type {}", metaType);
+        }
+    }
+
+    private void writeContentToFile(EntityDTO entityDTO, File dir, String fileName, String field, boolean base64Decode) throws IOException {
+        String content = entityDTO.getFields().remove(field);
+        if (content == null) {
+            return;
+        }
+
+        byte[] data;
+        if (base64Decode) {
+            data = Base64.getDecoder().decode(content.replaceAll("[\r?\n]", ""));
+        } else {
+            data = content.getBytes();
+        }
+
+        Path path = dir.toPath().resolve(fileName);
+        File parentDir = path.getParent().toFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdir();
+        }
+        Files.write(path, data);
+
+        entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
+    }
+
+    // TODO
+    private static void createDirectory(File directory) throws IOException {
+        if (!directory.exists()) {
+            if (!directory.mkdirs()) {
+                throw new IOException("Could not create directory:" + directory);
+            }
+        }
     }
 
     /**
@@ -384,51 +437,10 @@ public class EntityManager {
      * illegal characters :
      * : \ / * ? | < > "
      */
-    private String sanitizeFilename(String name) {
+    private String sanitize(String name) {
         checkNotNull(name);
         return name.trim().replaceAll("[\\/:\"*?<>|]+", "_");
     }
 
-    private void loadEntities(ESPK pk) {
-        loadEntity(pk);
-        Collection<ESPK> children = es.listChildren(pk, null);
-        for (ESPK childPK : children)
-            loadEntities(childPK);
-    }
 
-    private void loadEntity(ESPK pk) {
-        if (inlined.contains(pk)) {
-            return;
-        }
-        Entity e = getEntity(pk);
-        EntityDTO ye = yamlize(e, true);
-        mappedEntities.add(ye);
-
-
-    }
-
-    public Entity getEntity(ESPK key) {
-        if (entities.containsKey(key))
-            return entities.get(key);
-        ESPK espk = EntityStoreDelegate.getEntityForKey(es, key);
-        Entity e = es.getEntity(espk);
-        entities.put(key, e);
-        return e;
-    }
-
-    public List<Entity> pathToRoot(ESPK pk) {
-        List<Entity> path = new ArrayList<>();
-        if (pk == null)
-            return path;
-        while (!pk.equals(es.getRootPK())) {
-            try {
-                Entity e = getEntity(pk);
-                path.add(0, e);
-                pk = e.getParentPK();
-            } catch (EntityStoreException p) {
-                LOGGER.trace("ESPK not found in current ES: {}", pk);
-            }
-        }
-        return path;
-    }
 }

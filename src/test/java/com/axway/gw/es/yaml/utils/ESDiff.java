@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.zjsonpatch.JsonDiff;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.vordel.es.*;
 
 import java.io.File;
@@ -30,14 +32,16 @@ public class ESDiff {
     private final EntityStore target;
     private final List<Diff> diffList = new ArrayList<>();
     private final Set<ESPK> sourceESPK = new HashSet<>();
+    private final Function<String, ESPK> sourceToTargetPkResolver;
 
-    public ESDiff(EntityStore source, EntityStore target) {
+    private ESDiff(EntityStore source, EntityStore target, Function<String, ESPK> sourceToTargetPkResolver) {
         this.source = source;
         this.target = target;
+        this.sourceToTargetPkResolver = sourceToTargetPkResolver;
     }
 
-    public static ESDiff diff(EntityStore source, EntityStore target) {
-        ESDiff diff = new ESDiff(source, target);
+    public static ESDiff diff(EntityStore source, EntityStore target, Function<String, ESPK> sourceToTargetPkResolver) {
+        ESDiff diff = new ESDiff(source, target, sourceToTargetPkResolver);
 
         // compare root Pk
         final Entity sourceRoot = source.getEntity(source.getRootPK());
@@ -45,10 +49,10 @@ public class ESDiff {
         diff.registerSourceESPKAndCompare(new SourceEntity(sourceRoot), new TargetEntity(targetRoot));
 
         // descend the tree and compare with target
-        // diff.compareChildren(source.getRootPK());
+        diff.compareChildren(source.getRootPK());
 
         // find orphans in target
-        // diff.findOrphans(target.getRootPK());
+        diff.findOrphans(target.getRootPK());
 
         return diff;
     }
@@ -56,11 +60,16 @@ public class ESDiff {
     private void compareChildren(ESPK parentPk) {
         final Collection<ESPK> sourceChildren = source.findChildren(parentPk, null, null);
         if (sourceChildren != null && !sourceChildren.isEmpty()) {
-            sourceChildren.stream().map(source::getEntity).map(SourceEntity::new).forEach(srcEntity -> {
-                final TargetEntity targetEntity = new TargetEntity(target.getEntity(srcEntity.getESPK()));
-                registerSourceESPKAndCompare(srcEntity, targetEntity);
-                compareChildren(srcEntity.getESPK());
-            });
+            sourceChildren.stream()
+                    .map(source::getEntity)
+                    .map(SourceEntity::new)
+                    .forEach(srcEntity -> {
+                        ESPK targetESPK = sourceToTargetPkResolver.apply(srcEntity.getESPK().toString());
+                        srcEntity.getESPK();
+                        final TargetEntity targetEntity = new TargetEntity(target.getEntity(targetESPK));
+                        registerSourceESPKAndCompare(srcEntity, targetEntity);
+                        compareChildren(srcEntity.getESPK());
+                    });
         }
     }
 

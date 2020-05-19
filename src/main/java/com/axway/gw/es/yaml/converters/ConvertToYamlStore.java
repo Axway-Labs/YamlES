@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.converters;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,29 +20,46 @@ public class ConvertToYamlStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvertToYamlStore.class);
 
-    private TypeManager typeManager;
-    private EntityManager entityManager ;
-    private EntityStore es ;
+    private EntityTypeDTOConverter entityTypeDTOConverter;
+    private EntityDTOConverter entityDTOConverter;
+    private EntityStore inputES;
 
-    public ConvertToYamlStore(String url, Properties credentials) {
-        es = EntityStoreFactory.createESForURL(url);
+    public ConvertToYamlStore(String url) {
+        inputES = EntityStoreFactory.createESForURL(url);
         long start = currentTimeMillis();
-        es.connect(url, credentials);
+        inputES.connect(url, new Properties());
         long end = currentTimeMillis();
         LOGGER.info("Loaded ES in {}ms", (end - start));
 
-        typeManager = new TypeManager(es);
-        entityManager = new EntityManager(es, typeManager.getTypes());
+        entityTypeDTOConverter = new EntityTypeDTOConverter(inputES);
+        entityDTOConverter = new EntityDTOConverter(inputES, entityTypeDTOConverter.getTypes());
     }
 
     public EntityStore getInputEntityStore() {
-        return es;
+        return inputES;
+    }
+
+
+    public void convert(String yamlDir) throws InterruptedException, IOException {
+        String whereToWriteEntities = yamlDir + "/";
+
+        LOGGER.info("Deleting folders");
+        this.delete(yamlDir);
+        Thread.sleep(2000);
+
+        entityDTOConverter.loadAndMapAll();
+
+        LOGGER.info("Dumping types to {}", yamlDir);
+        entityTypeDTOConverter.writeTypes(new File(yamlDir + "/META-INF"));
+        LOGGER.info("Dumping entities to {}", whereToWriteEntities);
+        entityDTOConverter.writeEntities(new File(whereToWriteEntities));
+
+        LOGGER.info("Successfully extracted yaml files.");
     }
 
     private void delete(String location) {
         File dir = new File(location);
-        if (dir.exists())
-
+        if (dir.exists()) {
             try (Stream<Path> files = Files.walk(Paths.get(location))) {
                 files.sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
@@ -50,17 +67,9 @@ public class ConvertToYamlStore {
             } catch (IOException e) {
                 LOGGER.info("Unable to delete directory {}", location);
             }
+        }
     }
 
-    public void dumpTypesAsYaml(String location) throws IOException {
-        LOGGER.info("Dumping types to {}", location);
-        typeManager.writeTypes(new File(location + "/META-INF"));
-    }
-
-    public void dumpEntitiesAsYaml(String location) throws IOException {
-        LOGGER.info("Dumping entities to {}", location);
-        entityManager.writeEntities(new File(location));
-    }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length < 2) {
@@ -69,18 +78,8 @@ public class ConvertToYamlStore {
         }
         String inputES = args[0];
         String yamlDir = args[1];
-        convert(inputES, yamlDir);
+        new ConvertToYamlStore(inputES).convert(yamlDir);
     }
 
-    public static EntityStore convert(String inputES, String yamlDir) throws InterruptedException, IOException {
-        String whereToWriteEntities = yamlDir + "/";
-        ConvertToYamlStore converter = new ConvertToYamlStore(inputES, new Properties());
-        LOGGER.info("Deleting folders");
-        converter.delete(yamlDir);
-        Thread.sleep(2000);
-        converter.dumpTypesAsYaml(yamlDir);
-        converter.dumpEntitiesAsYaml(whereToWriteEntities);
-        LOGGER.info("Successfully extracted yaml files.");
-        return converter.getInputEntityStore();
-    }
+
 }

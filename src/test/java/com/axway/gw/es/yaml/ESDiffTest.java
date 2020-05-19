@@ -29,7 +29,7 @@ public class ESDiffTest {
 
         createStores("sample1", "sample1");
 
-        final ESDiff diff = ESDiff.diff(source, target);
+        final ESDiff diff = ESDiff.diff(source, target, YamlPK::new);
 
         assertDiffCount(diff, 0);
         assertThat(diff.diffAsJsonString()).isEqualTo("[ ]");
@@ -41,7 +41,7 @@ public class ESDiffTest {
 
         createStores("sample1", "sample2");
 
-        final ESDiff diff = ESDiff.diff(source, target);
+        final ESDiff diff = ESDiff.diff(source, target, YamlPK::new);
 
         assertDiffCount(diff, 5);
         assertThat(diff.diffList()).extracting(ESDiff.Diff::getDiffType).contains(ESDiff.DiffType.MODIFIED, ESDiff.DiffType.ADDED, ESDiff.DiffType.REMOVED);
