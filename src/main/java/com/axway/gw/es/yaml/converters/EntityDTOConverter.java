@@ -163,11 +163,11 @@ public class EntityDTOConverter {
         EntityDTO entityDTO = new EntityDTO();
         entityDTO.getMeta().setType(entityName); // may want to change this to the directory location of the type?
         entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
-        // deal with pk for this entity
-        entityDTO.setKey(getPath(entity.getPK()));
         // children?
         entityDTO.setAllowsChildren(allowChildren && isAllowsChildren(entity));
-        // fields
+        // deal with pk for this entity
+        entityDTO.setKey(getPath(entity.getPK()));
+       // fields
         setFields(entity, entityDTO);
         setReferences(entity, entityDTO);
 
@@ -184,40 +184,38 @@ public class EntityDTOConverter {
         return entityDTO;
     }
 
-    private void setFields(Entity entity, EntityDTO entityDTO) {
-        Field[] allFields = entity.getAllFields();
-        List<Field> refs = entity.getReferenceFields();
-        for (Field field : allFields) {
-            if (!refs.contains(field)) { // not a reference
-                final String fieldName = field.getName();
-                String fieldValue = entity.getStringValue(fieldName);
-                if (field instanceof ConstantField) {
-                    if (!isDefaultValue((ConstantField) field, fieldValue)) {
-                        entityDTO.addFieldValue(fieldName, fieldValue);
-                    }
-                } else if (!types.get(entityDTO.getMeta().getType()).isDefaultValue(fieldName, fieldValue)) {
-                    entityDTO.addFieldValue(fieldName, fieldValue);
-                }
+    private boolean isAllowsChildren(Entity entity) {
+        return entity.getType().allowsChildEntities()
+                && !INLINED_TYPES.contains(entity.getType().getName())
+                &&
+                (entity.getType().extendsType("NamedLoadableModule")
+                        || EXPANDED_TYPES.contains(entity.getType().getName())
+                        || !entity.getType().extendsType("NamedGroup")
+                        && !entity.getType().extendsType("LoadableModule")
+                        && !entity.getType().extendsType("Filter")
+                        && !entity.getType().extendsType("KPSStore")
+                        && !entity.getType().extendsType("KPSType")
+                );
+    }
+
+
+    private String getPath(ESPK pk) {
+        StringBuilder builder = new StringBuilder();
+
+        List<Entity> path = pathToRoot(pk);
+        LOGGER.debug("path to root is depth: {}", path.size());
+        for (Entity entity : path) {
+            String name = getKeyValues(entity);
+            if (builder.length() == 0) {
+                builder.append(getTopLevel(entity.getType()));
             }
-        }
-    }
+            if (builder.length() > 0) {
+                builder.append('/');
+            }
+            builder.append(name);
 
-    private boolean isDefaultValue(ConstantField field, String fieldValue) {
-        final String defaultValue = field.getType().getDefault();
-        boolean isDefaultValue = Objects.equals(fieldValue, defaultValue);
-        if (FieldType.BOOLEAN.equals(field.getType().getType())) {
-            isDefaultValue = Objects.equals(FieldType.getBooleanValue(defaultValue), FieldType.getBooleanValue(fieldValue));
         }
-        return isDefaultValue;
-    }
-
-    public Entity getEntity(ESPK key) {
-        if (entities.containsKey(key))
-            return entities.get(key);
-        ESPK espk = EntityStoreDelegate.getEntityForKey(sourceES, key);
-        Entity e = sourceES.getEntity(espk);
-        entities.put(key, e);
-        return e;
+        return builder.toString();
     }
 
     public List<Entity> pathToRoot(ESPK pk) {
@@ -236,26 +234,52 @@ public class EntityDTOConverter {
         return path;
     }
 
+    private String getKeyValues(Entity e) {
+        String[] keyNames = e.getType().getKeyFieldNames();
+        if (keyNames == null) {
+            throw new IllegalArgumentException("No key names for type " + e.getType());
+        }
+
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < keyNames.length; i++) {
+            com.vordel.es.Field keyField = e.getField(keyNames[i]);
+            if (null != keyField) {
+                Value keyValue = keyField.getValues()[0];
+                if (keyValue.getRef() == null) {
+                    b.append(keyValue.getData());
+                } else {
+                    b.append(getPath(keyValue.getRef()));
+                }
+            }
+            if (i < keyNames.length - 1)
+                b.append("$");
+        }
+        return sanitize(b.toString());
+    }
 
     private String getTopLevel(EntityType type) {
         String topLevel = ENTITIES_CATEGORIES.get(type.getName());
         return topLevel == null ? DEFAULT_CATEGORY : topLevel;
     }
 
-    private boolean isAllowsChildren(Entity value) {
-        return value.getType().allowsChildEntities()
-                && !INLINED_TYPES.contains(value.getType().getName())
-                &&
-                (value.getType().extendsType("NamedLoadableModule")
-                        || EXPANDED_TYPES.contains(value.getType().getName())
-                        || !value.getType().extendsType("NamedGroup")
-                        && !value.getType().extendsType("LoadableModule")
-                        && !value.getType().extendsType("Filter")
-                        && !value.getType().extendsType("KPSStore")
-                        && !value.getType().extendsType("KPSType")
-                );
-    }
 
+    private void setFields(Entity entity, EntityDTO entityDTO) {
+        Field[] allFields = entity.getAllFields();
+        List<Field> refs = entity.getReferenceFields();
+        for (Field field : allFields) {
+            if (!refs.contains(field)) { // not a reference
+                final String fieldName = field.getName();
+                String fieldValue = entity.getStringValue(fieldName);
+                if (field instanceof ConstantField) {
+                    if (!isDefaultValue((ConstantField) field, fieldValue)) {
+                        entityDTO.addFieldValue(fieldName, fieldValue);
+                    }
+                } else if (!types.get(entityDTO.getMeta().getType()).isDefaultValue(fieldName, fieldValue)) {
+                    entityDTO.addFieldValue(fieldName, fieldValue);
+                }
+            }
+        }
+    }
 
     private void setReferences(Entity value, EntityDTO ye) {
         List<Field> refs = value.getReferenceFields();
@@ -289,59 +313,41 @@ public class EntityDTOConverter {
         return false;
     }
 
-    private String getPath(ESPK pk) {
-        StringBuilder builder = new StringBuilder();
-
-        List<Entity> path = pathToRoot(pk);
-        LOGGER.debug("path to root is depth: {}", path.size());
-        for (Entity entity : path) {
-            String name = getKeyValues(entity);
-            if (builder.length() == 0) {
-                builder.append(getTopLevel(entity.getType()));
-            }
-            if (builder.length() > 0) {
-                builder.append('/');
-            }
-            builder.append(name);
-
+    private boolean isDefaultValue(ConstantField field, String fieldValue) {
+        final String defaultValue = field.getType().getDefault();
+        boolean isDefaultValue = Objects.equals(fieldValue, defaultValue);
+        if (FieldType.BOOLEAN.equals(field.getType().getType())) {
+            isDefaultValue = Objects.equals(FieldType.getBooleanValue(defaultValue), FieldType.getBooleanValue(fieldValue));
         }
-        return builder.toString();
-    }
-
-    private String getKeyValues(Entity e) {
-        String[] keyNames = e.getType().getKeyFieldNames();
-        if (keyNames == null) {
-            throw new IllegalArgumentException("No key names for type " + e.getType());
-        }
-
-        StringBuilder b = new StringBuilder();
-        for (int i = 0; i < keyNames.length; i++) {
-            com.vordel.es.Field keyField = e.getField(keyNames[i]);
-            if (null != keyField) {
-                Value keyValue = keyField.getValues()[0];
-                if (keyValue.getRef() == null) {
-                    b.append(keyValue.getData());
-                } else {
-                    b.append(getPath(keyValue.getRef()));
-                }
-            }
-            if (i < keyNames.length - 1)
-                b.append("$");
-        }
-        return sanitize(b.toString());
+        return isDefaultValue;
     }
 
 
-    public void writeEntities(File dir) throws IOException {
-        createDirectoryIfNeeded(dir);
 
-        // must provide dir (this happens when a file already exists)
-        if (!dir.isDirectory())
+
+
+
+
+    public Entity getEntity(ESPK key) {
+        if (entities.containsKey(key))
+            return entities.get(key);
+        ESPK espk = EntityStoreDelegate.getEntityForKey(sourceES, key);
+        Entity e = sourceES.getEntity(espk);
+        entities.put(key, e);
+        return e;
+    }
+
+
+    public void writeEntities(File rootDir) throws IOException {
+        createDirectoryIfNeeded(rootDir);
+
+        // must provide rootDir (this happens when a file already exists)
+        if (!rootDir.isDirectory())
             throw new IOException("Must provide a directory for YAML output");
 
-        for (EntityDTO ye : mappedEntities) {
+        for (EntityDTO entityDTO : mappedEntities) {
             // deal with pk for parent  entity
-            dumpAsYaml(new File(dir, ye.getKey()), ye);
+            dumpAsYaml(new File(rootDir, entityDTO.getKey()), entityDTO);
         }
     }
 

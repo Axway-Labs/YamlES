@@ -89,6 +89,26 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         this.rootLocation = rootLocation;
     }
 
+    public void loadTypes() throws IOException {
+        if (rootLocation == null)
+            throw new EntityStoreException("root directory not set");
+        TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
+        // for the moment load everything into memory rather than on demand
+        loadType(typeDTO, null);
+    }
+
+    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
+        types.put(typeDTO.getName(), typeDTO);
+        YamlEntityType type = DTOToYamlESEntityTypeConverter.convert(typeDTO);
+        type.setSuperType(parent);
+        addType(type);
+        for (TypeDTO yChild : typeDTO.getChildren()) {
+            loadType(yChild, type);
+        }
+        return type;
+    }
+
+
     public void loadEntities() {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
@@ -109,7 +129,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
         if (entity != null) {
-            parentPK = (YamlPK)entity.getPK();
+            parentPK = (YamlPK) entity.getPK();
         }
 
         if (dir.toString().contains("Certificate Store")) {
@@ -165,7 +185,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return null;
     }
 
-    public YamlEntity toYamlEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
+    private YamlEntity toYamlEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
         EntityType type = this.getTypeForName(entityDTO.getMeta().getType());
         YamlEntity entity = new YamlEntity(type);
 
@@ -187,12 +207,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
                 } else {
                     String content = fieldValue;
                     if (rawFieldName.contains("#ref")) {
-                        byte[] data = Files.readAllBytes(dir.toPath().resolve(content));
-                        if (rawFieldName.endsWith("#refbase64")) {
-                            content = Base64.getEncoder().encodeToString(data);
-                        } else {
-                            content = new String(data);
-                        }
+                        content = readFieldValueFromFile(dir, fieldValue, rawFieldName.endsWith("#refbase64"));
                     }
                     entity.setField(fieldName, new Value[]{new Value(content)});
                 }
@@ -210,24 +225,18 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
     }
 
-    public void loadTypes() throws IOException {
-        if (rootLocation == null)
-            throw new EntityStoreException("root directory not set");
-        TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
-        // for the moment load everything into memory rather than ondemmand
-        loadType(typeDTO, null);
+    private String readFieldValueFromFile(File dir, String fileName, boolean base64) throws IOException {
+
+        byte[] data = Files.readAllBytes(dir.toPath().resolve(fileName));
+        if (base64) {
+            fileName = Base64.getEncoder().encodeToString(data);
+        } else {
+            fileName = new String(data);
+        }
+
+        return fileName;
     }
 
-    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
-        types.put(typeDTO.getName(), typeDTO);
-        YamlEntityType type = DTOToYamlESEntityTypeConverter.convert(typeDTO);
-        type.setSuperType(parent);
-        addType(type);
-        for (TypeDTO yChild : typeDTO.getChildren()) {
-            loadType(yChild, type);
-        }
-        return type;
-    }
 
     /**
      * Get the identifier for the root Entity in the Store. Always returns
