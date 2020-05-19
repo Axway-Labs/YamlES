@@ -1,0 +1,6 @@
+---
+meta:
+  type: "LookupAttribute"
+fields:
+  name: lookup
+  namespace: test

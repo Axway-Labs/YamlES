@@ -137,7 +137,7 @@ public class YamlPkBuilder {
 
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < keyNames.length; i++) {
-            com.vordel.es.Field keyField = e.getField(keyNames[i]);
+            Field keyField = e.getField(keyNames[i]);
             if (null != keyField) {
                 Value keyValue = keyField.getValues()[0];
                 if (keyValue.getRef() == null) {

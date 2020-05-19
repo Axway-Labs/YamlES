@@ -96,6 +96,10 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         this.rootLocation = rootLocation;
     }
 
+    void setRootManually(YamlPK rootPk) {
+        root = rootPk;
+    }
+
     void loadTypes() throws IOException {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
@@ -121,22 +125,26 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             throw new EntityStoreException("root directory not set");
         // for the moment load everything into memory rather than ondemmand
         try {
-            root = loadEntities(rootLocation, root);
+            loadEntities(rootLocation, root);
         } catch (IOException e) {
             throw new EntityStoreException("Could not load YAML Entity Store", e);
         }
     }
 
-    private YamlPK loadEntities(File dir, YamlPK parentPK) throws IOException {
+    private void loadEntities(File dir, YamlPK parentPK) throws IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
 
-        LOG.debug("loading files from {}", dir);
+        LOG.info("loading files from {}", dir);
 
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
         if (entity != null) {
             parentPK = (YamlPK) entity.getPK();
+            // sets the root right away so it can be used to set properly all ESPKs
+            if(root == null) {
+                root = parentPK;
+            }
         }
 
         if (dir.toString().contains("Certificate Store")) {
@@ -150,45 +158,39 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
                     if (file.isDirectory()) {
                         loadEntities(file, parentPK);
                     } else if (file.toString().endsWith(YAML_EXTENSION)) {
-                        createEntity(file, parentPK);
+                        readEntityFromYamlFile(file, parentPK);
                     }
                 }
             }
         }
-
-        return parentPK;
     }
 
-    private YamlEntity createEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
-        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
-        YamlEntity entity = toYamlEntity(entityDTO, parentPK, dir);
-        entities.add(parentPK, entity);
-        return entity;
-    }
 
     private YamlEntity createParentEntity(File dir, YamlPK parentPK) throws IOException {
         File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
-            return createEntity(metadata, parentPK);
+            return readEntityFromYamlFile(metadata, parentPK);
         }
         return null;
     }
 
-    YamlEntity createEntity(File file, YamlPK parentPK) throws IOException {
+    YamlEntity readEntityFromYamlFile(File file, YamlPK parentPK) throws IOException {
         EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
-        File dir = file.getParentFile();
 
-        YamlEntity entity = createEntity(entityDTO, parentPK, dir);
+        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file, null);
 
         if (entityDTO.getChildren() != null) {
             for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                createEntity(entry.getValue(), (YamlPK) entity.getPK(), dir);
+                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file, entry.getKey());
             }
         }
         return entity;
     }
 
-    private YamlEntity toYamlEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
+    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) throws IOException {
+        File dir = file.getParentFile();
+        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
+
         EntityType type = this.getTypeForName(entityDTO.getMeta().getType());
         YamlEntity entity = new YamlEntity(type);
 
@@ -217,15 +219,51 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             }
         }
 
+
         // pk
-        YamlPK pk = toYamlPk(entityDTO, parentPK);
+        YamlPK pk;
+        if (parentPK == null) {
+            // root pk
+            pk = new YamlPK(entityDTO.buildKeyValue());
+        } else {
+            pk = getYamlPkForFile(file);
+        }
+
+        if (childName != null) {
+            pk = new YamlPK(getYamlPkForFile(file), childName);
+        }
+
         entity.setPK(pk);
         entity.setParentPK(parentPK);
+
+        entities.add(parentPK, entity);
         return entity;
     }
 
-    public static YamlPK toYamlPk(EntityDTO entityDTO, YamlPK parentPK) {
-        return parentPK == null ? new YamlPK(entityDTO.buildKeyValue()) : new YamlPK(parentPK, entityDTO.buildKeyValue());
+    YamlPK getYamlPkForFile(File file) {
+
+        String path = file.getPath();
+        path = path.replace(METADATA_FILENAME, "");
+        path = path.replace(YAML_EXTENSION, "");
+        path = path.replace(rootLocation.getPath(), "");
+        path = removeTrailingSlash(path);
+        path = removeStartingSlash(path);
+
+        return getRootPK() != null ? new YamlPK(getRootPK(), path): new YamlPK(path);
+    }
+
+    private String removeStartingSlash(String path) {
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return path;
+    }
+
+    private String removeTrailingSlash(String path) {
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return path;
     }
 
     private String readFieldValueFromFile(File dir, String fileName, boolean isBase64) throws IOException {

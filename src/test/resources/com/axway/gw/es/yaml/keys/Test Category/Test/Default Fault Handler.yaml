@@ -1,0 +1,17 @@
+---
+meta:
+  type: "FilterCircuit"
+fields:
+  name: "Default Fault Handler"
+  description: ""
+  start: "Generic Error"
+logging:
+  category: "System/Policy Categories/miscellaneous"
+children:
+  Generic Error:
+    meta:
+      type: "GenericFaultFilter"
+    fields:
+      name: "Generic Error"
+    logging:
+      category: "System/Filter Categories/miscellaneous"

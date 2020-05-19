@@ -45,8 +45,8 @@ public class YamlEntityDTOStoreTest {
 
     public void loadSinglePolicy(String file, String startFieldValue, int children, String startNodeType) throws IOException {
 
-        Entity e = es.createEntity(getFileFromClasspath(testPackage, file), null);
-        assertThat(e.getField("start").getValueList().get(0).toString()).isEqualTo(startFieldValue);
+        Entity e = es.readEntityFromYamlFile(getFileFromClasspath(testPackage, file), null);
+        assertThat(e.get("start").toString()).isEqualTo(startFieldValue);
 
 
         // check the number of children
@@ -59,7 +59,7 @@ public class YamlEntityDTOStoreTest {
 
         final ESPK namedPk = namedChildren.iterator().next();
         // check that search did get the right one
-        assertThat(es.getEntity(namedPk).getField("name").getValueList().get(0).getData()).isEqualTo(startFieldValue);
+        assertThat(es.getEntity(namedPk).get("name")).isEqualTo(startFieldValue);
         assertThat(es.getEntity(namedPk).getType()).isSameAs(es.getTypeForName(startNodeType));
 
 
