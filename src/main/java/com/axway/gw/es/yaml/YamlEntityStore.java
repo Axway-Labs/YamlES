@@ -24,9 +24,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.*;
 
-import static com.axway.gw.es.yaml.converters.EntityDTOConverter.METADATA_FILENAME;
-import static com.axway.gw.es.yaml.converters.EntityDTOConverter.YAML_EXTENSION;
-import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.HIDDEN_FILE_PREFIX;
+import static com.axway.gw.es.yaml.YamlExporter.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.YamlExporter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.KEY_MAPPING_FILENAME;
 import static com.axway.gw.es.yaml.converters.EntityTypeDTOConverter.TYPES_FILE;
 import static java.lang.System.currentTimeMillis;
 
@@ -37,10 +37,17 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     public static final String SCHEME = "yaml:";
     public static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
+    public static final Set<String> NON_ENTITY_FILES = new HashSet<>();
+
     static {
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+
+        NON_ENTITY_FILES.add("META-INF");
+        NON_ENTITY_FILES.add(METADATA_FILENAME);
+        NON_ENTITY_FILES.add(KEY_MAPPING_FILENAME);
+
     }
 
     private File rootLocation;
@@ -89,7 +96,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         this.rootLocation = rootLocation;
     }
 
-    public void loadTypes() throws IOException {
+    void loadTypes() throws IOException {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
         TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
@@ -109,7 +116,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
 
-    public void loadEntities() {
+    void loadEntities() {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
         // for the moment load everything into memory rather than ondemmand
@@ -120,7 +127,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         }
     }
 
-    public YamlPK loadEntities(File dir, YamlPK parentPK) throws IOException {
+    private YamlPK loadEntities(File dir, YamlPK parentPK) throws IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
 
@@ -139,35 +146,17 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         final File[] files = dir.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.getName().startsWith(HIDDEN_FILE_PREFIX) || file.getPath().endsWith(METADATA_FILENAME) || file.getPath().endsWith("META-INF")) {
-                    // skip META-INF (where types are stored)
-                    // skip "__" prefixed files (a way to ignore some files)
-                    // skip over metadata.yaml when loading entities (see createParentEntity() )
-                    continue;
-                }
-                if (file.isDirectory()) {
-                    loadEntities(file, parentPK);
-                } else if (file.toString().endsWith(YAML_EXTENSION)) {
-                    createEntity(file, parentPK);
+                if (!NON_ENTITY_FILES.contains(file.getName())) {
+                    if (file.isDirectory()) {
+                        loadEntities(file, parentPK);
+                    } else if (file.toString().endsWith(YAML_EXTENSION)) {
+                        createEntity(file, parentPK);
+                    }
                 }
             }
         }
 
         return parentPK;
-    }
-
-    YamlEntity createEntity(File file, YamlPK parentPK) throws IOException {
-        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
-        File dir = file.getParentFile();
-
-        YamlEntity entity = createEntity(entityDTO, parentPK, dir);
-
-        if (entityDTO.getChildren() != null) {
-            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                createEntity(entry.getValue(), (YamlPK) entity.getPK(), dir);
-            }
-        }
-        return entity;
     }
 
     private YamlEntity createEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
@@ -183,6 +172,20 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             return createEntity(metadata, parentPK);
         }
         return null;
+    }
+
+    YamlEntity createEntity(File file, YamlPK parentPK) throws IOException {
+        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
+        File dir = file.getParentFile();
+
+        YamlEntity entity = createEntity(entityDTO, parentPK, dir);
+
+        if (entityDTO.getChildren() != null) {
+            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
+                createEntity(entry.getValue(), (YamlPK) entity.getPK(), dir);
+            }
+        }
+        return entity;
     }
 
     private YamlEntity toYamlEntity(EntityDTO entityDTO, YamlPK parentPK, File dir) throws IOException {
@@ -222,13 +225,13 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     public static YamlPK toYamlPk(EntityDTO entityDTO, YamlPK parentPK) {
-        return parentPK == null ? new YamlPK(entityDTO.getKeyDescription()) : new YamlPK(parentPK, entityDTO.getKeyDescription());
+        return parentPK == null ? new YamlPK(entityDTO.buildKeyValue()) : new YamlPK(parentPK, entityDTO.buildKeyValue());
     }
 
-    private String readFieldValueFromFile(File dir, String fileName, boolean base64) throws IOException {
+    private String readFieldValueFromFile(File dir, String fileName, boolean isBase64) throws IOException {
 
         byte[] data = Files.readAllBytes(dir.toPath().resolve(fileName));
-        if (base64) {
+        if (isBase64) {
             fileName = Base64.getEncoder().encodeToString(data);
         } else {
             fileName = new String(data);

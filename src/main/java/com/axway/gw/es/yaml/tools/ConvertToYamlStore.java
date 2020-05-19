@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.converters;
+package com.axway.gw.es.yaml.tools;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,9 +6,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import com.axway.gw.es.yaml.YamlExporter;
+import com.axway.gw.es.yaml.converters.EntityStoreToDTOConverter;
+import com.axway.gw.es.yaml.converters.EntityTypeDTOConverter;
+import com.axway.gw.es.yaml.dto.entity.EntityDTO;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreFactory;
 import org.slf4j.Logger;
@@ -21,7 +26,7 @@ public class ConvertToYamlStore {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvertToYamlStore.class);
 
     private EntityTypeDTOConverter entityTypeDTOConverter;
-    private EntityDTOConverter entityDTOConverter;
+    private EntityStoreToDTOConverter entityStoreToDTOConverter;
     private EntityStore inputES;
 
     public ConvertToYamlStore(String url) {
@@ -32,7 +37,7 @@ public class ConvertToYamlStore {
         LOGGER.info("Loaded ES in {}ms", (end - start));
 
         entityTypeDTOConverter = new EntityTypeDTOConverter(inputES);
-        entityDTOConverter = new EntityDTOConverter(inputES, entityTypeDTOConverter.getTypes());
+        entityStoreToDTOConverter = new EntityStoreToDTOConverter(inputES, entityTypeDTOConverter.getTypes());
     }
 
     public EntityStore getInputEntityStore() {
@@ -41,18 +46,23 @@ public class ConvertToYamlStore {
 
 
     public void convert(String yamlDir) throws InterruptedException, IOException {
+        convert(yamlDir, false);
+    }
+
+    public void convert(String yamlDir, boolean writeKeyMapping) throws InterruptedException, IOException {
         String whereToWriteEntities = yamlDir + "/";
 
         LOGGER.info("Deleting folders");
         this.delete(yamlDir);
         Thread.sleep(2000);
 
-        entityDTOConverter.loadAndMapAll();
+        final List<EntityDTO> entityDTOList = entityStoreToDTOConverter.mapFromRoot();
 
         LOGGER.info("Dumping types to {}", yamlDir);
         entityTypeDTOConverter.writeTypes(new File(yamlDir + "/META-INF"));
         LOGGER.info("Dumping entities to {}", whereToWriteEntities);
-        entityDTOConverter.writeEntities(new File(whereToWriteEntities));
+
+        new YamlExporter(entityDTOList, writeKeyMapping).writeEntities(new File(whereToWriteEntities));
 
         LOGGER.info("Successfully extracted yaml files.");
     }

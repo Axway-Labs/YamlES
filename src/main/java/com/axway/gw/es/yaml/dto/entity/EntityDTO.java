@@ -1,6 +1,7 @@
 package com.axway.gw.es.yaml.dto.entity;
 
 import com.axway.gw.es.yaml.dto.type.FieldDTO;
+import com.axway.gw.es.yaml.util.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.LinkedHashMap;
@@ -14,6 +15,9 @@ public class EntityDTO {
 
     @JsonIgnore
     private String key;
+
+    @JsonIgnore
+    private String sourceKey;
 
     private final MetaDTO meta = new MetaDTO();
     private Map<String, String> fields;
@@ -96,12 +100,11 @@ public class EntityDTO {
         if (children == null) {
             children = new LinkedHashMap<>();
         }
-        children.put(child.key.substring(key.length() + 1), child);
+        children.put(NameUtils.refKeyFormatter(child.key, this), child);
     }
 
 
-    @JsonIgnore
-    public String getKeyDescription() {
+    public String buildKeyValue() {
         String keyDescription = meta.getTypeDTO().getFields().values()
                 .stream()
                 .filter(FieldDTO::isKeyField)
@@ -128,6 +131,15 @@ public class EntityDTO {
 
     public String getKey() {
         return key;
+    }
+
+    public String getSourceKey() {
+        return sourceKey;
+    }
+
+    public EntityDTO setSourceKey(String sourceKey) {
+        this.sourceKey = sourceKey;
+        return this;
     }
 
     public MetaDTO getMeta() {

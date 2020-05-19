@@ -52,7 +52,7 @@ public class ESDiff {
         diff.compareChildren(source.getRootPK());
 
         // find orphans in target
-        diff.findOrphans(target.getRootPK());
+        // diff.findOrphans(target.getRootPK());
 
         return diff;
     }
@@ -65,7 +65,6 @@ public class ESDiff {
                     .map(SourceEntity::new)
                     .forEach(srcEntity -> {
                         ESPK targetESPK = sourceToTargetPkResolver.apply(srcEntity.getESPK().toString());
-                        srcEntity.getESPK();
                         final TargetEntity targetEntity = new TargetEntity(target.getEntity(targetESPK));
                         registerSourceESPKAndCompare(srcEntity, targetEntity);
                         compareChildren(srcEntity.getESPK());

@@ -8,11 +8,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static com.axway.gw.es.yaml.converters.EntityDTOConverter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.YamlExporter.YAML_EXTENSION;
+
 
 public class EntityStoreESPKMapper<S, T> {
 
-    public static final String HIDDEN_FILE_PREFIX = ".";
+    public static final String HIDDEN_FILE_PREFIX = "_";
     public static final String KEY_MAPPING_FILENAME = HIDDEN_FILE_PREFIX +"federated-to-yaml-espk"+YAML_EXTENSION;
     Map<S, T> keyMapping = new LinkedHashMap<>();
 
@@ -21,7 +22,11 @@ public class EntityStoreESPKMapper<S, T> {
     }
 
     public void writeFederatedToYamlPkMapping(String rootDir) throws IOException {
-        YamlEntityStore.YAML_MAPPER.writeValue(new File(rootDir, "__federated-to-yaml-espk.yaml"), keyMapping);
+        writeFederatedToYamlPkMapping(new File(rootDir));
+    }
+
+    public void writeFederatedToYamlPkMapping(File rootDir) throws IOException {
+        YamlEntityStore.YAML_MAPPER.writeValue(new File(rootDir, KEY_MAPPING_FILENAME), keyMapping);
     }
 
     public Map<S, T> readFederatedToYamlPkMapping(String rootDir) throws IOException {

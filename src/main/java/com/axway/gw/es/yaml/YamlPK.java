@@ -15,11 +15,11 @@ public class YamlPK implements com.vordel.es.ESPK {
         this.location = location;
     }
 
-    public YamlPK(ESPK parent, String name) {
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("Invalid key " + parent + " " + name);
+    public YamlPK(ESPK parent, String path) {
+        if (path == null || path.isEmpty()) {
+            throw new IllegalArgumentException("Invalid key parent=" + parent + " path=" + path);
         }
-        this.location = parent.toString() + "/" + name;
+        this.location = parent.toString() + "/" + path;
     }
 
     @Override
