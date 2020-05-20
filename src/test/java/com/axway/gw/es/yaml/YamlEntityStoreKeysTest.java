@@ -45,7 +45,7 @@ public class YamlEntityStoreKeysTest {
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler"))).isNotNull();
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).getType().getName()).isEqualTo("FilterCircuit");
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).get("name")).isEqualTo("Default Fault Handler");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).get("start").toString()).isEqualTo("Generic Error");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).get("start")).isEqualTo(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error"));
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error"))).isNotNull();
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error")).getType().getName()).isEqualTo("GenericFaultFilter");
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error")).get("name")).isEqualTo("Generic Error");

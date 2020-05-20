@@ -30,7 +30,7 @@ public class YamlESMiscTests {
         yamlEntityStore = new YamlEntityStore();
         yamlEntityStore.setRootLocation(new File("/tmp/my-project"));
         yamlEntityStore.setRootManually(new YamlPK("test"));
-        assertThat(yamlEntityStore.getYamlPkForFile(new File(path))).isEqualToComparingFieldByField(new YamlPK("test/foo/bar"));
+        assertThat(yamlEntityStore.getYamlPkForFile(new File(path))).isEqualToComparingFieldByField(new YamlPK("foo/bar"));
     }
 
 
