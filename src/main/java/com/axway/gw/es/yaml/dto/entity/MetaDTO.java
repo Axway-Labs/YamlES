@@ -6,8 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
-import static com.axway.gw.es.yaml.YamlConstantFieldsNames.CLASS;
-import static com.axway.gw.es.yaml.YamlConstantFieldsNames.VERSION;
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.CLASS_FIELD_NAME;
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.VERSION_FIELD_NAME;
 
 public class MetaDTO {
 
@@ -16,10 +16,10 @@ public class MetaDTO {
     @JsonIgnore
     private TypeDTO typeDTO;
 
-    @JsonProperty(CLASS)
+    @JsonProperty(CLASS_FIELD_NAME)
     private String clazz;
 
-    @JsonProperty(VERSION)
+    @JsonProperty(VERSION_FIELD_NAME)
     private String version;
 
     public String getType() {

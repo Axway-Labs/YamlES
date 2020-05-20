@@ -8,7 +8,7 @@ import java.io.File;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class YamlESMiscTests {
-    private static final String testPackage = "/com/axway/gw/es/yaml/noroot/";
+    private static final String testPackage = "/com/axway/gw/es/yaml/refs/";
 
 
 

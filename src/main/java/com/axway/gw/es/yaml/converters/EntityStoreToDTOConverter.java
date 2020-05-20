@@ -141,7 +141,7 @@ public class EntityStoreToDTOConverter {
                 } else {
                     key = keyBuilder.buildKeyValue(ref);
                     if (key.startsWith(entityDTO.getKey())) {
-                        key = NameUtils.refKeyFormatter(key, entityDTO);
+                        key = NameUtils.toShortHandRef(key, entityDTO);
                     }
                 }
                 entityDTO.addFieldValue(field.getName(), key);

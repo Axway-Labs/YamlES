@@ -24,11 +24,11 @@ public class FieldDTO {
         this.name = name;
         String fieldTypeName = fieldType.getType();
         if (fieldType.isSoftRefType())
-            fieldTypeName = fieldTypeName.replace("^", "@");  // no supporting softrefs in yaml es
+            fieldTypeName = fieldTypeName.replace("^", "@");  // Soft does not make sens in yaml es, so we convert in hard ref (@)
         this.type = fieldTypeName;
         this.cardinality = fieldType.getCardinality();
         this.defaultValue = fieldType.getDefault();
-        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) {
+        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) { // TODO use FieldType.getBooleanValue() instead
 			switch (fieldType.getDefault()) {
 				case "0" : defaultValue = "false"; break;
 				case "1" : defaultValue = "true"; break;

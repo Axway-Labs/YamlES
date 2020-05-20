@@ -12,6 +12,7 @@ import com.axway.gw.es.yaml.util.NameUtils;
 import com.axway.gw.es.yaml.utils.ESDiff;
 import com.vordel.es.ESPK;
 import com.vordel.es.EntityStore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -30,6 +31,7 @@ public class BatchYamlStoreConverterTestIT {
             "TeamDevelopmentAPI",
             "TeamDevelopmentSettings",
             "TeamDevelopmentSettingsAPIM"})
+    @Disabled
     public void convertFactoryTemplate(String project) throws InterruptedException, IOException {
 
         final String yamlDir = YAML_OUTPUT_DIR + project;
@@ -50,8 +52,7 @@ public class BatchYamlStoreConverterTestIT {
         ESDiff diff = ESDiff.diff(convertToYamlStore.getInputEntityStore(), yamlEntityStore, fedKey -> {
             final String path = keyMapping.get(fedKey);
             if (path == null) return null;
-            final ESPK rootPK = yamlEntityStore.getRootPK();
-            return new YamlPK(rootPK, path);
+            return new YamlPK(path);
         });
 
         assertDiffCount(diff, 0, project);

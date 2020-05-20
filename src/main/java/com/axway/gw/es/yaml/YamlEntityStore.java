@@ -6,6 +6,7 @@ import com.axway.gw.es.yaml.util.IndexedEntityTreeDelegate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.vordel.es.*;
 import com.vordel.es.impl.AbstractTypeStore;
 import com.vordel.es.impl.EntityTypeMap;
@@ -28,6 +29,7 @@ import static com.axway.gw.es.yaml.YamlExporter.METADATA_FILENAME;
 import static com.axway.gw.es.yaml.YamlExporter.YAML_EXTENSION;
 import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.KEY_MAPPING_FILENAME;
 import static com.axway.gw.es.yaml.converters.EntityTypeDTOConverter.TYPES_FILE;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
 
 @SuppressWarnings("WeakerAccess")
@@ -37,12 +39,12 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     public static final String SCHEME = "yaml:";
     public static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
-    public static final Set<String> NON_ENTITY_FILES = new HashSet<>();
+    private static final Set<String> NON_ENTITY_FILES = new HashSet<>();
 
     static {
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        // YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        ((YAMLFactory) YAML_MAPPER.getFactory()).configure(YAMLGenerator.Feature.SPLIT_LINES, false);
 
         NON_ENTITY_FILES.add("META-INF");
         NON_ENTITY_FILES.add(METADATA_FILENAME);
@@ -52,7 +54,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private File rootLocation;
     private YamlPK root;
-    private final Map<String, TypeDTO> types = new LinkedHashMap<>();
+    private final Map<String, TypeDTO> types = new LinkedHashMap<>(); // FIXME use typeMap everywhere, might end up with errors
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
 
@@ -142,7 +144,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         if (entity != null) {
             parentPK = (YamlPK) entity.getPK();
             // sets the root right away so it can be used to set properly all ESPKs
-            if(root == null) {
+            if (root == null) {
                 root = parentPK;
             }
         }
@@ -151,17 +153,24 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             LOG.warn("Certificate Store is not handled");
         }
 
-        final File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (!NON_ENTITY_FILES.contains(file.getName())) {
-                    if (file.isDirectory()) {
-                        loadEntities(file, parentPK);
-                    } else if (file.toString().endsWith(YAML_EXTENSION)) {
-                        readEntityFromYamlFile(file, parentPK);
-                    }
+
+        for (File file : listFiles(dir)) {
+            if (!NON_ENTITY_FILES.contains(file.getName())) {
+                if (file.isDirectory()) {
+                    loadEntities(file, parentPK);
+                } else if (file.toString().endsWith(YAML_EXTENSION)) {
+                    readEntityFromYamlFile(file, parentPK);
                 }
             }
+        }
+    }
+
+    private List<File> listFiles(File dir) {
+        final File[] files = dir.listFiles();
+        if (files != null) {
+            return Arrays.asList(files);
+        } else {
+            return Collections.emptyList();
         }
     }
 
@@ -187,40 +196,56 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return entity;
     }
 
-    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) throws IOException {
+    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) throws
+            IOException {
+
         File dir = file.getParentFile();
-        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
 
         EntityType type = this.getTypeForName(entityDTO.getMeta().getType());
+        checkNotNull(type);
+
         YamlEntity entity = new YamlEntity(type);
+        entityDTO.getMeta().setTypeDTO(types.get(type.getName()));
 
-        if (entityDTO.getFields() != null) {
+        // pk
+        YamlPK pk;
+        pk = computeYamlPK(entityDTO, parentPK, file, childName);
 
-            // fields
-            for (Map.Entry<String, String> fieldEntry : entityDTO.getFields().entrySet()) {
-                if (type.isConstantField(fieldEntry.getKey())) {
-                    continue; // don't set constants
+
+        Map<String, String> embeddedFields = entityDTO.retrieveAllFields();
+
+        // fields
+        for (Map.Entry<String, String> fieldEntry : embeddedFields.entrySet()) {
+
+            String rawFieldName = fieldEntry.getKey();
+            String fieldValue = fieldEntry.getValue();
+            String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+
+            if (type.isConstantField(rawFieldName)) {
+                continue; // don't set constants
+            }
+
+            FieldType fieldType = type.getFieldType(fieldName);
+            if (fieldType.isRefType() || fieldType.isSoftRefType()) {
+                setReference(entity, pk, fieldValue, fieldName);
+            } else {
+                String content = fieldValue;
+                if (rawFieldName.contains("#ref")) {
+                    content = readFieldValueFromFile(dir, fieldValue, rawFieldName.endsWith("#refbase64"));
                 }
-
-                String rawFieldName = fieldEntry.getKey();
-                String fieldValue = fieldEntry.getValue();
-                String fieldName = StringUtils.substringBefore(rawFieldName, "#");
-
-                FieldType fieldType = type.getFieldType(fieldName);
-                if (fieldType.isRefType() || fieldType.isSoftRefType()) {
-                    entity.setReferenceField(fieldName, new YamlPK(fieldValue));
-                } else {
-                    String content = fieldValue;
-                    if (rawFieldName.contains("#ref")) {
-                        content = readFieldValueFromFile(dir, fieldValue, rawFieldName.endsWith("#refbase64"));
-                    }
-                    entity.setField(fieldName, new Value[]{new Value(content)});
-                }
+                entity.setField(fieldName, new Value[]{new Value(content)});
             }
         }
 
 
-        // pk
+        entity.setPK(pk);
+        entity.setParentPK(parentPK);
+
+        entities.add(parentPK, entity);
+        return entity;
+    }
+
+    private YamlPK computeYamlPK(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) {
         YamlPK pk;
         if (parentPK == null) {
             // root pk
@@ -232,12 +257,15 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         if (childName != null) {
             pk = new YamlPK(getYamlPkForFile(file), childName);
         }
+        return pk;
+    }
 
-        entity.setPK(pk);
-        entity.setParentPK(parentPK);
-
-        entities.add(parentPK, entity);
-        return entity;
+    private void setReference(YamlEntity entity, YamlPK pk, String fieldValue, String fieldName) {
+        // expand ref if need
+        if (!fieldValue.startsWith(pk.getLocation()))
+            entity.setReferenceField(fieldName, new YamlPK(pk, fieldValue));
+        else
+            entity.setReferenceField(fieldName, new YamlPK(fieldValue));
     }
 
     YamlPK getYamlPkForFile(File file) {
@@ -249,7 +277,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         path = removeTrailingSlash(path);
         path = removeStartingSlash(path);
 
-        return getRootPK() != null ? new YamlPK(getRootPK(), path): new YamlPK(path);
+        return new YamlPK(path);
     }
 
     private String removeStartingSlash(String path) {

@@ -26,6 +26,7 @@ public class YamlPkBuilder {
     static {
         ENTITIES_CATEGORIES.put("FilterCircuit", POLICIES);
         ENTITIES_CATEGORIES.put("CircuitContainer", POLICIES);
+
         ENTITIES_CATEGORIES.put("WebServiceGroup", APIS);
         ENTITIES_CATEGORIES.put("WebServiceRepository", APIS);
 
@@ -91,7 +92,7 @@ public class YamlPkBuilder {
 
 
     public YamlPkBuilder(EntityStore entityStore) {
-        this.entityStore=entityStore;
+        this.entityStore = entityStore;
     }
 
     public String buildKeyValue(ESPK pk) {
@@ -123,7 +124,7 @@ public class YamlPkBuilder {
                 path.add(0, e);
                 pk = e.getParentPK();
             } catch (EntityStoreException p) {
-                LOGGER.trace("ESPK not found in current ES: {}", pk);
+                LOGGER.warn("ESPK not found in current ES: {}", pk);
             }
         }
         return path;

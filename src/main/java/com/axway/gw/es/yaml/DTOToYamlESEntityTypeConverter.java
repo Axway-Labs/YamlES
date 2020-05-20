@@ -35,16 +35,16 @@ public final class DTOToYamlESEntityTypeConverter {
 
 
         if(typeDTO.getVersion() != null) {
-            ConstantField constantField = createConstantField(YamlConstantFieldsNames.VERSION, "integer", Integer.toString(typeDTO.getVersion()));
+            ConstantField constantField = createConstantField(YamlConstantFieldsNames.VERSION_FIELD_NAME, "integer", Integer.toString(typeDTO.getVersion()));
             type.addConstantField(constantField);
         }
 
         if(typeDTO.getClazz() != null) {
-            ConstantField constantField = createConstantField(YamlConstantFieldsNames.CLASS, "string", typeDTO.getClazz());
+            ConstantField constantField = createConstantField(YamlConstantFieldsNames.CLASS_FIELD_NAME, "string", typeDTO.getClazz());
             type.addConstantField(constantField);
         }
         if(typeDTO.getLoadOrder() != null && typeDTO.getLoadOrder() != 0) {
-            ConstantField constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER, "integer", Integer.toString(typeDTO.getLoadOrder()));
+            ConstantField constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER_FIELD_NAME, "integer", Integer.toString(typeDTO.getLoadOrder()));
             type.addConstantField(constantField);
         }
 

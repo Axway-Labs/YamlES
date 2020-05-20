@@ -52,7 +52,7 @@ public class ESDiff {
         diff.compareChildren(source.getRootPK());
 
         // find orphans in target
-        // diff.findOrphans(target.getRootPK());
+        diff.findOrphans(target.getRootPK());
 
         return diff;
     }

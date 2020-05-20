@@ -8,8 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.axway.gw.es.yaml.YamlConstantFieldsNames.CLASS;
-import static com.axway.gw.es.yaml.YamlConstantFieldsNames.VERSION;
+import static com.axway.gw.es.yaml.YamlConstantFieldsNames.*;
 
 public class EntityDTO {
 
@@ -18,6 +17,8 @@ public class EntityDTO {
 
     @JsonIgnore
     private String sourceKey;
+
+    private String name;
 
     private final MetaDTO meta = new MetaDTO();
     private Map<String, String> fields;
@@ -29,13 +30,15 @@ public class EntityDTO {
     @JsonIgnore
     private boolean allowsChildren = false;
 
-
     public void addFieldValue(String key, String value) {
         switch (key) {
-            case CLASS:
+            case CLASS_FIELD_NAME:
                 break;
-            case VERSION:
+            case VERSION_FIELD_NAME:
                 meta.setVersion(value);
+                break;
+            case NAME_FIELD_NAME:
+                name = value;
                 break;
             case LoggingDTO.FIELD_LOG_MASK_TYPE:
                 initLogging();
@@ -74,13 +77,52 @@ public class EntityDTO {
                 routing.setFailureNode(value);
                 break;
             default:
-                if (fields == null) {
-                    fields = new LinkedHashMap<>();
-                }
+                initFields();
                 String previous = fields.put(key, value);
                 if (previous != null) {
                     throw new IllegalArgumentException("Duplicate values for " + key);
                 }
+        }
+    }
+
+
+    public Map<String, String> retrieveAllFields() {
+
+        Map<String, String> allFields = new LinkedHashMap<>();
+
+        if (fields != null) {
+            allFields.putAll(fields);
+        }
+
+        putNonNull(allFields, NAME_FIELD_NAME, name);
+        putNonNull(allFields, VERSION_FIELD_NAME, getMeta().getVersion());
+
+        if (logging != null) {
+            putNonNull(allFields, LoggingDTO.FIELD_CATEGORY, logging.getCategory());
+            putNonNull(allFields, LoggingDTO.FIELD_LOG_FAILURE, logging.getLogFailure());
+            putNonNull(allFields, LoggingDTO.FIELD_LOG_SUCCESS, logging.getLogSuccess());
+            putNonNull(allFields, LoggingDTO.FIELD_LOG_FATAL, logging.getLogFatal());
+            putNonNull(allFields, LoggingDTO.FIELD_LOG_MASK, logging.getLogMask());
+            putNonNull(allFields, LoggingDTO.FIELD_LOG_MASK_TYPE, logging.getLogMaskType());
+            putNonNull(allFields, LoggingDTO.FIELD_ABORT_PROCESSING_ON_LOG_ERROR, logging.getAbortProcessingOnLogError());
+        }
+
+        if (routing != null) {
+            putNonNull(allFields, RoutingDTO.FAILURE_NODE, routing.getFailureNode());
+            putNonNull(allFields, RoutingDTO.SUCCESS_NODE, routing.getSuccessNode());
+        }
+
+        return allFields;
+    }
+
+    public void addChild(EntityDTO child) {
+        initChildren();
+        children.put(NameUtils.toShortHandRef(child.key, this), child);
+    }
+
+    private void putNonNull(Map<String, String> map, String name, String value) {
+        if (value != null) {
+            map.put(name, value);
         }
     }
 
@@ -96,11 +138,16 @@ public class EntityDTO {
         }
     }
 
-    public void addChild(EntityDTO child) {
+    private void initChildren() {
         if (children == null) {
             children = new LinkedHashMap<>();
         }
-        children.put(NameUtils.refKeyFormatter(child.key, this), child);
+    }
+
+    private void initFields() {
+        if (fields == null) {
+            fields = new LinkedHashMap<>();
+        }
     }
 
 
@@ -124,6 +171,7 @@ public class EntityDTO {
         return meta.getTypeDTO().getDefaultValue(fieldName);
     }
 
+
     public EntityDTO setKey(String key) {
         this.key = key;
         return this;
@@ -132,6 +180,7 @@ public class EntityDTO {
     public String getKey() {
         return key;
     }
+
 
     public String getSourceKey() {
         return sourceKey;
@@ -190,6 +239,17 @@ public class EntityDTO {
         this.allowsChildren = allowsChildren;
         return this;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public EntityDTO setName(String name) {
+        this.name = name;
+        return this;
+    }
 }
+
+
 
 

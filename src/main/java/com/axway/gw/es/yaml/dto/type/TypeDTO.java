@@ -17,10 +17,10 @@ public class TypeDTO {
 
     private Integer version;
 
-    @JsonProperty(CLASS)
+    @JsonProperty(CLASS_FIELD_NAME)
     private String clazz;
 
-    @JsonProperty(LOAD_ORDER)
+    @JsonProperty(LOAD_ORDER_FIELD_NAME)
     private Integer loadOrder;
 
     @JsonIgnore
@@ -58,13 +58,13 @@ public class TypeDTO {
 
     public void addConstant(String name, ConstantFieldType ft) {
         switch (name) {
-            case VERSION:
+            case VERSION_FIELD_NAME:
                 version = Integer.parseInt(ft.getDefault());
                 return;
-            case CLASS:
+            case CLASS_FIELD_NAME:
                 clazz = ft.getDefault();
                 return;
-            case LOAD_ORDER:
+            case LOAD_ORDER_FIELD_NAME:
                 loadOrder = Integer.parseInt(ft.getDefault());
                 return;
             default:
