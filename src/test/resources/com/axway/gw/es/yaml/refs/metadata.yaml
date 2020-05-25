@@ -2,6 +2,6 @@
 meta:
   type: "Root"
 fields:
-  tagValue: "sample-1"
+  tagValue: "ref-test"
   name: "Test Components"
-  tagName: "sample"
+  tagName: "test"

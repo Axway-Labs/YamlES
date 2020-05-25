@@ -70,7 +70,7 @@ public class EntityStoreToDTOConverter {
         mappedEntities.add(entityDTO);
     }
 
-    private EntityDTO mapToDTO(Entity entity, boolean allowChildren) {
+    private EntityDTO mapToDTO(Entity entity, boolean embeddedTypesUnsupported) {
 
         final String entityName = entity.getType().getName();
 
@@ -78,15 +78,15 @@ public class EntityStoreToDTOConverter {
         entityDTO.getMeta().setType(entityName); // may want to change this to the directory location of the type?
         entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
         // children?
-        entityDTO.setAllowsChildren(allowChildren && isAllowsChildren(entity));
+        entityDTO.setEmbeddedTypesUnsupported(embeddedTypesUnsupported && isNotEmbeddedable(entity));
         // deal with pk for this entity
-        entityDTO.setKey(keyBuilder.buildKeyValue(entity.getPK()));
+        entityDTO.setKey(isRoot(entity) ? keyBuilder.getKeyValues(entity) : keyBuilder.buildKeyValue(entity));
         entityDTO.setSourceKey(entity.getPK().toString());
         // fields
         setFields(entity, entityDTO);
         setReferences(entity, entityDTO);
 
-        if (!entityDTO.isAllowsChildren()) {
+        if (!entityDTO.isEmbeddedTypesUnsupported()) {
             for (ESPK childPK : sourceES.listChildren(entity.getPK(), null)) {
                 embeddedEntities.add(childPK);
                 Entity child = getEntity(childPK);
@@ -99,7 +99,11 @@ public class EntityStoreToDTOConverter {
         return entityDTO;
     }
 
-    private boolean isAllowsChildren(Entity entity) {
+    private boolean isRoot(Entity entity) {
+        return "Root".equals(entity.getType().getName());
+    }
+
+    private boolean isNotEmbeddedable(Entity entity) {
         return entity.getType().allowsChildEntities()
                 && !INLINED_TYPES.contains(entity.getType().getName())
                 && (entity.getType().extendsType("NamedLoadableModule")
@@ -140,8 +144,8 @@ public class EntityStoreToDTOConverter {
                     key = ref.toString();
                 } else {
                     key = keyBuilder.buildKeyValue(ref);
-                    if (key.startsWith(entityDTO.getKey())) {
-                        key = NameUtils.toShortHandRef(key, entityDTO);
+                    if (key.startsWith(entityDTO.getKey())) { // TODO when inlined
+                        key = NameUtils.toInlinedRef(key, entityDTO);
                     }
                 }
                 entityDTO.addFieldValue(field.getName(), key);

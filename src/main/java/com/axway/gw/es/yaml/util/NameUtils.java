@@ -20,7 +20,7 @@ public class NameUtils {
         return name.trim().replaceAll("[/:\"*?<>|]+", "_");
     }
 
-    public static String toShortHandRef(String key, EntityDTO entityDTO) {
+    public static String toInlinedRef(String key, EntityDTO entityDTO) {
         checkNotNull(key);
         checkNotNull(entityDTO);
         return key.substring(entityDTO.getKey().length() + 1);

@@ -9,9 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.axway.gw.es.yaml.util.NameUtils.sanitize;
 
@@ -21,6 +19,9 @@ public class YamlExporter {
 
     public static final String YAML_EXTENSION = ".yaml";
     public static final String METADATA_FILENAME = "metadata.yaml";
+
+
+
 
     private final List<EntityDTO> mappedEntities;
     private final boolean saveKeyMapping;
@@ -48,7 +49,12 @@ public class YamlExporter {
 
         for (EntityDTO entityDTO : mappedEntities) {
             // deal with pk for parent  entity
-            dumpAsYaml(rootDir, entityDTO.getKey(), entityDTO);
+            if("Root".equals(entityDTO.getMeta().getType())) {
+                // No path for root
+                dumpAsYaml(rootDir, "", entityDTO);
+            } else {
+                dumpAsYaml(rootDir, entityDTO.getKey(), entityDTO);
+            }
         }
 
         entityStoreESPKMapper.writeFederatedToYamlPkMapping(rootDir);
@@ -56,18 +62,15 @@ public class YamlExporter {
     }
 
     private void dumpAsYaml(File rootDir, String path, EntityDTO entityDTO) throws IOException {
-
         final File output = new File(rootDir, path);
 
-        if (entityDTO.isAllowsChildren()) { // handle as directory with metadata
+        if (entityDTO.isEmbeddedTypesUnsupported()) { // handle as directory with metadata
             createDirectoryIfNeeded(output);
             YamlEntityStore.YAML_MAPPER.writeValue(new File(output, METADATA_FILENAME), entityDTO);
         } else { // handle as file
             File f = new File(output.getPath() + YAML_EXTENSION);
             createDirectoryIfNeeded(f.getParentFile());
-
             extractContent(entityDTO, f);
-
             YamlEntityStore.YAML_MAPPER.writeValue(f, entityDTO);
         }
 
@@ -77,10 +80,11 @@ public class YamlExporter {
 
     }
 
+
     private void extractContent(EntityDTO entityDTO, File file) throws IOException {
         if (entityDTO.getChildren() != null) {
-            for (EntityDTO yChild : entityDTO.getChildren().values()) {
-                extractContent(yChild, file);
+            for (EntityDTO child : entityDTO.getChildren().values()) {
+                extractContent(child, file);
             }
         }
 
@@ -140,5 +144,7 @@ public class YamlExporter {
             throw new IOException("Could not create directory:" + directory);
         }
     }
+
+
 
 }

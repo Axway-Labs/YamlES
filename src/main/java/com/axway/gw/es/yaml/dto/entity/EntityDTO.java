@@ -28,7 +28,7 @@ public class EntityDTO {
     private Map<String, EntityDTO> children;
 
     @JsonIgnore
-    private boolean allowsChildren = false;
+    private boolean embeddedTypesUnsupported = false;
 
     public void addFieldValue(String key, String value) {
         switch (key) {
@@ -117,7 +117,7 @@ public class EntityDTO {
 
     public void addChild(EntityDTO child) {
         initChildren();
-        children.put(NameUtils.toShortHandRef(child.key, this), child);
+        children.put(NameUtils.toInlinedRef(child.key, this), child);
     }
 
     private void putNonNull(Map<String, String> map, String name, String value) {
@@ -231,12 +231,12 @@ public class EntityDTO {
         return this;
     }
 
-    public boolean isAllowsChildren() {
-        return allowsChildren;
+    public boolean isEmbeddedTypesUnsupported() {
+        return embeddedTypesUnsupported;
     }
 
-    public EntityDTO setAllowsChildren(boolean allowsChildren) {
-        this.allowsChildren = allowsChildren;
+    public EntityDTO setEmbeddedTypesUnsupported(boolean embeddedTypesUnsupported) {
+        this.embeddedTypesUnsupported = embeddedTypesUnsupported;
         return this;
     }
 

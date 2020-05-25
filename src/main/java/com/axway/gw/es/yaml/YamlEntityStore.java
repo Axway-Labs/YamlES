@@ -57,6 +57,12 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private final Map<String, TypeDTO> types = new LinkedHashMap<>(); // FIXME use typeMap everywhere, might end up with errors
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
+    private final YamlPkBuilder yamlPkBuilder;
+
+
+    public YamlEntityStore() {
+        yamlPkBuilder = new YamlPkBuilder(this);
+    }
 
     /**
      * Connect to an entity store.
@@ -178,6 +184,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private YamlEntity createParentEntity(File dir, YamlPK parentPK) throws IOException {
         File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
+            LOG.info("Read parent entity "+ metadata);
             return readEntityFromYamlFile(metadata, parentPK);
         }
         return null;
@@ -186,17 +193,17 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     YamlEntity readEntityFromYamlFile(File file, YamlPK parentPK) throws IOException {
         EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
 
-        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file, null);
+        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file);
 
         if (entityDTO.getChildren() != null) {
             for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file, entry.getKey());
+                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file);
             }
         }
         return entity;
     }
 
-    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) throws
+    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file) throws
             IOException {
 
         File dir = file.getParentFile();
@@ -207,28 +214,22 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         YamlEntity entity = new YamlEntity(type);
         entityDTO.getMeta().setTypeDTO(types.get(type.getName()));
 
-        // pk
-        YamlPK pk;
-        pk = computeYamlPK(entityDTO, parentPK, file, childName);
 
-
-        Map<String, String> embeddedFields = entityDTO.retrieveAllFields();
+        Map<String, String> allFields = entityDTO.retrieveAllFields();
 
         // fields
-        for (Map.Entry<String, String> fieldEntry : embeddedFields.entrySet()) {
+        for (Map.Entry<String, String> fieldEntry : allFields.entrySet()) {
 
             String rawFieldName = fieldEntry.getKey();
             String fieldValue = fieldEntry.getValue();
             String fieldName = StringUtils.substringBefore(rawFieldName, "#");
 
-            if (type.isConstantField(rawFieldName)) {
+            if (type.isConstantField(fieldName)) {
                 continue; // don't set constants
             }
 
             FieldType fieldType = type.getFieldType(fieldName);
-            if (fieldType.isRefType() || fieldType.isSoftRefType()) {
-                setReference(entity, pk, fieldValue, fieldName);
-            } else {
+            if (!fieldType.isRefType() && !fieldType.isSoftRefType()) {
                 String content = fieldValue;
                 if (rawFieldName.contains("#ref")) {
                     content = readFieldValueFromFile(dir, fieldValue, rawFieldName.endsWith("#refbase64"));
@@ -237,61 +238,46 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             }
         }
 
-
-        entity.setPK(pk);
+        // pk
         entity.setParentPK(parentPK);
+        YamlPK pk = computeYamlPK(entity, parentPK);
+        entity.setPK(pk);
+
+        // set references fields
+        for (Map.Entry<String, String> fieldEntry : allFields.entrySet()) {
+            String rawFieldName = fieldEntry.getKey();
+            String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+            FieldType fieldType = type.getFieldType(fieldName);
+            if (!type.isConstantField(fieldName) &&
+                    (fieldType.isRefType() ||
+                            fieldType.isSoftRefType())) {
+                setReference(entity, pk, fieldEntry.getValue(), fieldName);
+            }
+        }
+
+
 
         entities.add(parentPK, entity);
         return entity;
     }
 
-    private YamlPK computeYamlPK(EntityDTO entityDTO, YamlPK parentPK, File file, String childName) {
-        YamlPK pk;
+    private YamlPK computeYamlPK(Entity entity, ESPK parentPK) {
+        String location;
         if (parentPK == null) {
             // root pk
-            pk = new YamlPK(entityDTO.buildKeyValue());
+            location = yamlPkBuilder.getKeyValues(entity);
         } else {
-            pk = getYamlPkForFile(file);
+            location = yamlPkBuilder.buildKeyValue(entity);
         }
-
-        if (childName != null) {
-            pk = new YamlPK(getYamlPkForFile(file), childName);
-        }
-        return pk;
+        return new YamlPK(location);
     }
 
     private void setReference(YamlEntity entity, YamlPK pk, String fieldValue, String fieldName) {
-        // expand ref if need
+        // expand ref if need TODO must be done on same file child
         if (!fieldValue.startsWith(pk.getLocation()))
             entity.setReferenceField(fieldName, new YamlPK(pk, fieldValue));
         else
             entity.setReferenceField(fieldName, new YamlPK(fieldValue));
-    }
-
-    YamlPK getYamlPkForFile(File file) {
-
-        String path = file.getPath();
-        path = path.replace(METADATA_FILENAME, "");
-        path = path.replace(YAML_EXTENSION, "");
-        path = path.replace(rootLocation.getPath(), "");
-        path = removeTrailingSlash(path);
-        path = removeStartingSlash(path);
-
-        return new YamlPK(path);
-    }
-
-    private String removeStartingSlash(String path) {
-        if (path.startsWith("/")) {
-            path = path.substring(1);
-        }
-        return path;
-    }
-
-    private String removeTrailingSlash(String path) {
-        if (path.endsWith("/")) {
-            path = path.substring(0, path.length() - 1);
-        }
-        return path;
     }
 
     private String readFieldValueFromFile(File dir, String fileName, boolean isBase64) throws IOException {

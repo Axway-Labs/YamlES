@@ -1,10 +1,7 @@
 package com.axway.gw.es.yaml;
 
 import com.axway.gw.es.yaml.dto.entity.EntityDTO;
-import com.vordel.es.ESPK;
-import com.vordel.es.Entity;
-import com.vordel.es.EntityStoreException;
-import com.vordel.es.Field;
+import com.vordel.es.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -37,15 +34,14 @@ public class YamlEntityStoreRefsTest {
 
     @ParameterizedTest
     @CsvSource({
-            "policies/API Manager Protection Policy.yaml,policies/API Manager Protection Policy,Disable Monitoring,11,SetAttributeFilter",
-            "policies/oauth20/Access Token Service.yaml,policies/oauth20/Access Token Service,Decide what grant type to use,1,SwitchFilter",
-            "policies/oauth20/Client Credentials.yaml,policies/oauth20/Client Credentials,Access Token using client credentials,1,ClientCredentialsFilter",
-            "policies/oauth20/Refresh.yaml,policies/oauth20/Refresh,Refresh Access token,1,RefreshingAccessTokenFilter",
-            "policies/oauth20/Resource Owner Password Credentials.yaml,policies/oauth20/Resource Owner Password Credentials,Resource Owner Password Credentials,1,ResourceOwnerPasswordCredentialsFilter",
-            "policies/oauth20/SAML.yaml,policies/oauth20/SAML,Access token using SAML Assertion,1,SAMLBearerAssertionGrantFilter",
-            "policies/oauth20/Verify SAML Signature.yaml,policies/oauth20/Verify SAML Signature,XML Signature Verification,1,IntegrityVerifySignatureFilter"
+            "policies/API Manager Protection Policy.yaml,Policies/API Manager Protection Policy,Disable Monitoring,11,SetAttributeFilter",
+            "policies/oauth20/Access Token Service.yaml,Policies/Access Token Service,Decide what grant type to use,1,SwitchFilter",
+            "policies/oauth20/Client Credentials.yaml,Policies/Client Credentials,Access Token using client credentials,1,ClientCredentialsFilter",
+            "policies/oauth20/Refresh.yaml,Policies/Refresh,Refresh Access token,1,RefreshingAccessTokenFilter",
+            "policies/oauth20/Resource Owner Password Credentials.yaml,Policies/Resource Owner Password Credentials,Resource Owner Password Credentials,1,ResourceOwnerPasswordCredentialsFilter",
+            "policies/oauth20/SAML.yaml,Policies/SAML,Access token using SAML Assertion,1,SAMLBearerAssertionGrantFilter",
+            "policies/oauth20/Verify SAML Signature.yaml,Policies/Verify SAML Signature,XML Signature Verification,1,IntegrityVerifySignatureFilter"
     })
-
     public void ref_should_be_expended_from_DTO(String dtoFile, String entityPK, String startFieldShortRef, int childrenCount, String startNodeTargetType) throws IOException {
 
         // get entity in ES
@@ -73,11 +69,23 @@ public class YamlEntityStoreRefsTest {
         assertThat(startEntity.getType().getName()).isEqualTo(startNodeTargetType);
         assertThat(startEntity.getType()).isSameAs(yamlEntityStore.getTypeForName(startNodeTargetType));
 
-        // search for
+        // search for child of type
+        final Collection<ESPK> children = yamlEntityStore.findChildren(entity.getPK(), null, yamlEntityStore.getTypeForName(startNodeTargetType));
+        assertThat(children).hasSize(1);
+        assertThat(children.iterator().next()).isEqualTo(startESPK);
+
+        // search for child of type
+        final Collection<ESPK> childList = yamlEntityStore.listChildren(entity.getPK(), yamlEntityStore.getTypeForName(startNodeTargetType));
+        assertThat(childList).hasSize(1);
+        assertThat(childList.iterator().next()).isEqualTo(startESPK);
+
+        // TODO search by fields
         final Collection<ESPK> namedChildren = yamlEntityStore.findChildren(entity.getPK(), null, yamlEntityStore.getTypeForName(startNodeTargetType));
         assertThat(namedChildren).hasSize(1);
-
         assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
+
+        // TODO search with short hand notation
+        EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]**/["+startNodeTargetType+"]name="+startFieldShortRef);
 
     }
 

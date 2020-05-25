@@ -39,19 +39,20 @@ public class YamlEntityStoreKeysTest {
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Components")).getType().getName()).isEqualTo("Root");
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Components")).get("name")).isEqualTo("Test Components");
         assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category"))).isNull();
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test"))).isNotNull();
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test")).getType().getName()).isEqualTo("CircuitContainer");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test")).get("name")).isEqualTo("Test");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler"))).isNotNull();
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).getType().getName()).isEqualTo("FilterCircuit");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).get("name")).isEqualTo("Default Fault Handler");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler")).get("start")).isEqualTo(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error"));
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error"))).isNotNull();
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error")).getType().getName()).isEqualTo("GenericFaultFilter");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/Default Fault Handler/Generic Error")).get("name")).isEqualTo("Generic Error");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/lookup$test"))).isNotNull();
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/lookup$test")).get("name")).isEqualTo("lookup");
-        assertThat(yamlEntityStore.getEntity(new YamlPK("Test Category/Test/lookup$test")).get("namespace")).isEqualTo("test");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Test"))).isNull();
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test"))).isNotNull();
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test")).getType().getName()).isEqualTo("CircuitContainer");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test")).get("name")).isEqualTo("Test");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler"))).isNotNull();
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler")).getType().getName()).isEqualTo("FilterCircuit");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler")).get("name")).isEqualTo("Default Fault Handler");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler")).get("start")).isEqualTo(new YamlPK("Policies/Test/Default Fault Handler/Generic Error"));
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler/Generic Error"))).isNotNull();
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler/Generic Error")).getType().getName()).isEqualTo("GenericFaultFilter");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/Default Fault Handler/Generic Error")).get("name")).isEqualTo("Generic Error");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/lookup$test"))).isNotNull();
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/lookup$test")).get("name")).isEqualTo("lookup");
+        assertThat(yamlEntityStore.getEntity(new YamlPK("Policies/Test/lookup$test")).get("namespace")).isEqualTo("test");
 
     }
 

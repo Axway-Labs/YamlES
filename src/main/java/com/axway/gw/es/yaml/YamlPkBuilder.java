@@ -11,7 +11,7 @@ import static com.axway.gw.es.yaml.util.NameUtils.sanitize;
 public class YamlPkBuilder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(YamlPkBuilder.class);
-
+    public static final String DEFAULT_CATEGORY = "System";
     public static final String POLICIES = "Policies";
     public static final String APIS = "APIs";
     public static final String RESOURCES = "Resources";
@@ -21,8 +21,6 @@ public class YamlPkBuilder {
     public static final String SERVER_SETTINGS = "Server Settings";
 
     private static final Map<String, String> ENTITIES_CATEGORIES = new HashMap<>();
-    public static final String DEFAULT_CATEGORY = "System";
-
     static {
         ENTITIES_CATEGORIES.put("FilterCircuit", POLICIES);
         ENTITIES_CATEGORIES.put("CircuitContainer", POLICIES);
@@ -87,6 +85,7 @@ public class YamlPkBuilder {
         ENTITIES_CATEGORIES.put("PortalConfiguration", SERVER_SETTINGS);
         ENTITIES_CATEGORIES.put("ZeroDowntime", SERVER_SETTINGS);
     }
+    // TODO put all of the above in a file in src/main/resources
 
     private final EntityStore entityStore;
 
@@ -95,14 +94,17 @@ public class YamlPkBuilder {
         this.entityStore = entityStore;
     }
 
-    public String buildKeyValue(ESPK pk) {
+    public String buildKeyValue(ESPK childPk) {
+        return buildKeyValue(getEntity(childPk));
+    }
+    public String buildKeyValue(Entity childEntity) {
         StringBuilder builder = new StringBuilder();
 
-        List<Entity> path = pathToRoot(pk);
+        List<Entity> path = pathToRoot(childEntity);
         LOGGER.debug("path to root is depth: {}", path.size());
         for (Entity entity : path) {
             if (builder.length() == 0) {
-                builder.append(getTopLevel(entity.getType()));
+                builder.append(getTopLevel(entity.getType().getName()));
             }
             if (builder.length() > 0) {
                 builder.append('/');
@@ -114,13 +116,13 @@ public class YamlPkBuilder {
         return builder.toString();
     }
 
-    private List<Entity> pathToRoot(ESPK pk) {
+    private List<Entity> pathToRoot(Entity childEntity) {
         List<Entity> path = new ArrayList<>();
-        if (pk == null)
-            return path;
-        while (!pk.equals(entityStore.getRootPK())) {
+        if(childEntity == null) return path;
+        ESPK pk = childEntity.getPK();
+        while (pk == null || !pk.equals(entityStore.getRootPK())) {
             try {
-                Entity e = getEntity(pk);
+                Entity e = pk != null ? getEntity(pk) : childEntity;
                 path.add(0, e);
                 pk = e.getParentPK();
             } catch (EntityStoreException p) {
@@ -130,15 +132,25 @@ public class YamlPkBuilder {
         return path;
     }
 
-    private String getKeyValues(Entity e) {
-        String[] keyNames = e.getType().getKeyFieldNames();
+
+    private String getTopLevel(String typeName) {
+        if(typeName.equals("Root")) {
+            return "";
+        }
+        String topLevel = ENTITIES_CATEGORIES.get(typeName);
+        return topLevel == null ? DEFAULT_CATEGORY : topLevel;
+    }
+
+    public String getKeyValues(Entity entity) {
+        String[] keyNames = entity.getType().getKeyFieldNames();
         if (keyNames == null) {
-            throw new IllegalArgumentException("No key names for type " + e.getType());
+            throw new IllegalArgumentException("No key names for type " + entity.getType());
         }
 
+        // TODO Change for regular loop + join with '$'
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < keyNames.length; i++) {
-            Field keyField = e.getField(keyNames[i]);
+            Field keyField = entity.getField(keyNames[i]);
             if (null != keyField) {
                 Value keyValue = keyField.getValues()[0];
                 if (keyValue.getRef() == null) {
@@ -153,10 +165,6 @@ public class YamlPkBuilder {
         return sanitize(b.toString());
     }
 
-    private String getTopLevel(EntityType type) {
-        String topLevel = ENTITIES_CATEGORIES.get(type.getName());
-        return topLevel == null ? DEFAULT_CATEGORY : topLevel;
-    }
 
     public Entity getEntity(ESPK key) {
         final ESPK espk = EntityStoreDelegate.getEntityForKey(entityStore, key);
