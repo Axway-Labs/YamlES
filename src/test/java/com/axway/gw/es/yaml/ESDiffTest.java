@@ -15,7 +15,7 @@ public class ESDiffTest {
     private YamlEntityStore target;
 
 
-    public void createStores(String sourcePath, String targetPath) {
+    private void createStores(String sourcePath, String targetPath) {
         this.source = new YamlEntityStore();
         source.connect(YamlEntityStore.SCHEME + "file:" + new File(YamlEntityStore.class.getResource(testPackage + sourcePath).getPath()).getPath(), null);
 

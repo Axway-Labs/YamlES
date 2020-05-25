@@ -4,7 +4,10 @@ import com.vordel.es.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.axway.gw.es.yaml.util.NameUtils.sanitize;
 
@@ -22,6 +25,8 @@ public class YamlPkBuilder {
 
     private static final Map<String, String> ENTITIES_CATEGORIES = new HashMap<>();
     static {
+        ENTITIES_CATEGORIES.put("Root", "");
+
         ENTITIES_CATEGORIES.put("FilterCircuit", POLICIES);
         ENTITIES_CATEGORIES.put("CircuitContainer", POLICIES);
 
@@ -85,10 +90,8 @@ public class YamlPkBuilder {
         ENTITIES_CATEGORIES.put("PortalConfiguration", SERVER_SETTINGS);
         ENTITIES_CATEGORIES.put("ZeroDowntime", SERVER_SETTINGS);
     }
-    // TODO put all of the above in a file in src/main/resources
 
     private final EntityStore entityStore;
-
 
     public YamlPkBuilder(EntityStore entityStore) {
         this.entityStore = entityStore;
@@ -134,35 +137,31 @@ public class YamlPkBuilder {
 
 
     private String getTopLevel(String typeName) {
-        if(typeName.equals("Root")) {
-            return "";
-        }
         String topLevel = ENTITIES_CATEGORIES.get(typeName);
         return topLevel == null ? DEFAULT_CATEGORY : topLevel;
     }
 
     public String getKeyValues(Entity entity) {
+
         String[] keyNames = entity.getType().getKeyFieldNames();
         if (keyNames == null) {
             throw new IllegalArgumentException("No key names for type " + entity.getType());
         }
 
-        // TODO Change for regular loop + join with '$'
-        StringBuilder b = new StringBuilder();
-        for (int i = 0; i < keyNames.length; i++) {
-            Field keyField = entity.getField(keyNames[i]);
-            if (null != keyField) {
+        List<String> keyValues = new ArrayList<>();
+        for (String keyName : keyNames) {
+            Field keyField = entity.getField(keyName);
+            if (keyField != null) {
                 Value keyValue = keyField.getValues()[0];
                 if (keyValue.getRef() == null) {
-                    b.append(keyValue.getData());
+                    keyValues.add(keyValue.getData());
                 } else {
-                    b.append(buildKeyValue(keyValue.getRef()));
+                    keyValues.add(buildKeyValue(keyValue.getRef()));
                 }
             }
-            if (i < keyNames.length - 1)
-                b.append("$");
         }
-        return sanitize(b.toString());
+
+        return sanitize(String.join("$", keyValues));
     }
 
 

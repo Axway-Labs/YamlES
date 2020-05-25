@@ -26,12 +26,68 @@ public class EntityTypeDTOConverter {
     // // types map contains root children of the entitystore
     private final Map<String, TypeDTO> types = new LinkedHashMap<>();
     private final TypeDTO baseType;
-    private final EntityStore es;
+    private final EntityStore sourceES;
 
-    public EntityTypeDTOConverter(EntityStore es) {
-        this.es = es;
-        EntityType t = es.getBaseType();
-        baseType = loadTypes(t);
+    public EntityTypeDTOConverter(EntityStore sourceES) {
+        this.sourceES = sourceES;
+        this.baseType = loadTypes(sourceES.getBaseType());
+    }
+
+    public Map<String, TypeDTO> getTypes() {
+        return types;
+    }
+
+    private TypeDTO loadTypes(EntityType entityType) {
+        TypeDTO typeDTO = loadType(entityType);
+        for (String subtypeName : sourceES.getSubtypes(entityType.getName())) {
+            EntityType subtype = sourceES.getTypeForName(subtypeName);
+            TypeDTO subTypeDTO = loadTypes(subtype);
+            typeDTO.addChild(subTypeDTO);
+        }
+        return typeDTO;
+    }
+
+    private TypeDTO loadType(EntityType t) {
+        log.debug("Loading type: {}", t.getName());
+        return typeNameToDTO(t.getName());
+    }
+
+    private TypeDTO typeNameToDTO(String typeName) {
+        EntityType type = sourceES.getTypeForName(typeName);
+        TypeDTO t = typeToDTO(type);
+        TypeDTO old = types.put(typeName, t);
+        if (old != null) {
+            throw new IllegalArgumentException("Type reuse not supported: " + old.getName());
+        }
+        return t;
+    }
+
+    public static TypeDTO typeToDTO(EntityType entityType) {
+        TypeDTO typeDTO = new TypeDTO(entityType.getName());
+        typeDTO.setAbstract(entityType.isAbstract());
+        // fields
+        Collection<String> keyFields = entityType.getAllDeclaredKeyFields();
+        for (String name : entityType.getAllDeclaredFieldNames()) {
+            FieldType fieldType = entityType.getFieldType(name);
+            if (fieldType instanceof ConstantFieldType) {
+                typeDTO.addConstant(name, (ConstantFieldType) fieldType);
+            } else {
+                FieldDTO fieldDTO = new FieldDTO(name, fieldType);
+                if (keyFields.contains(name))
+                    fieldDTO.setKeyField(true);
+                typeDTO.getFields().put(name, fieldDTO);
+            }
+        }
+
+        // children
+        Map<String, Object> components = entityType.getDeclaredComponentTypes();
+        for (Map.Entry<String, Object> entry : components.entrySet()) {
+            String name = entry.getKey();
+            Object value = entry.getValue();
+
+            typeDTO.getComponents().put(name, value.toString());
+        }
+        return typeDTO;
     }
 
     public void writeTypes(File dir) throws IOException {
@@ -41,60 +97,4 @@ public class EntityTypeDTOConverter {
         YamlEntityStore.YAML_MAPPER.writeValue(out, baseType);
     }
 
-    public Map<String, TypeDTO> getTypes() {
-        return types;
-    }
-
-    private TypeDTO loadTypes(EntityType t) {
-        TypeDTO typeDTO = loadType(t);
-        for (String typename : es.getSubtypes(t.getName())) {
-            EntityType st = es.getTypeForName(typename);
-            TypeDTO subTypeDTO = loadTypes(st);
-            typeDTO.addChild(subTypeDTO);
-        }
-        return typeDTO;
-    }
-
-    private TypeDTO loadType(EntityType t) {
-        log.debug("Loading type: {}", t.getName());
-        return getType(t.getName());
-    }
-
-    private TypeDTO getType(String typeName) {
-        EntityType type = es.getTypeForName(typeName);
-        TypeDTO t = createType(type);
-        TypeDTO old = types.put(typeName, t);
-        if (old != null) {
-            throw new IllegalArgumentException("Type reuse not supported: " + old.getName());
-        }
-        return t;
-    }
-
-    private static TypeDTO createType(EntityType et) {
-        TypeDTO t = new TypeDTO(et.getName());
-        t.setAbstract(et.isAbstract());
-        // fields
-        Collection<String> keyFields = et.getAllDeclaredKeyFields();
-        for (String name : et.getAllDeclaredFieldNames()) {
-            FieldType ft = et.getFieldType(name);
-            if (ft instanceof ConstantFieldType) {
-                t.addConstant(name, (ConstantFieldType) ft);
-            } else {
-                FieldDTO f = new FieldDTO(name, ft);
-                if (keyFields.contains(name))
-                    f.setKeyField(true);
-                t.getFields().put(name, f);
-            }
-        }
-
-        // children
-        Map<String, Object> components = et.getDeclaredComponentTypes();
-        for (Map.Entry<String, Object> entry : components.entrySet()) {
-            String name = entry.getKey();
-            Object value = entry.getValue();
-
-            t.getComponents().put(name, value.toString());
-        }
-        return t;
-    }
 }

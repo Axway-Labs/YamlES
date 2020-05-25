@@ -102,8 +102,8 @@ public class ESDiff {
         return JSON_EXPORTER.writerWithDefaultPrettyPrinter().writeValueAsString(diffList);
     }
 
-    public void dumpDiffJson(File dumpeFile) throws IOException {
-        JSON_EXPORTER.writerWithDefaultPrettyPrinter().writeValue(dumpeFile, diffList);
+    public void dumpDiffJson(File dumpFile) throws IOException {
+        JSON_EXPORTER.writerWithDefaultPrettyPrinter().writeValue(dumpFile, diffList);
     }
 
 

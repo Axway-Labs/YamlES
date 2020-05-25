@@ -28,12 +28,8 @@ public class FieldDTO {
         this.type = fieldTypeName;
         this.cardinality = fieldType.getCardinality();
         this.defaultValue = fieldType.getDefault();
-        if ("boolean".equals(fieldTypeName) && fieldType.getDefault() != null) { // TODO use FieldType.getBooleanValue() instead
-			switch (fieldType.getDefault()) {
-				case "0" : defaultValue = "false"; break;
-				case "1" : defaultValue = "true"; break;
-				default: defaultValue = fieldType.getDefault();
-			}
+        if (FieldType.BOOLEAN.equals(fieldTypeName) && fieldType.getDefault() != null) {
+			defaultValue = String.valueOf(FieldType.getBooleanValue(defaultValue));
         }
     }
 

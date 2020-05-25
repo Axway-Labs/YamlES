@@ -79,13 +79,13 @@ public class YamlEntityStoreRefsTest {
         assertThat(childList).hasSize(1);
         assertThat(childList.iterator().next()).isEqualTo(startESPK);
 
-        // TODO search by fields
-        final Collection<ESPK> namedChildren = yamlEntityStore.findChildren(entity.getPK(), null, yamlEntityStore.getTypeForName(startNodeTargetType));
+        final Collection<ESPK> namedChildren = yamlEntityStore.findChildren(entity.getPK(), new Field[]{entity.getType().createField("name", startFieldShortRef)}, yamlEntityStore.getTypeForName(startNodeTargetType));
         assertThat(namedChildren).hasSize(1);
         assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
 
-        // TODO search with short hand notation
         EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]**/["+startNodeTargetType+"]name="+startFieldShortRef);
+        assertThat(namedChildren).hasSize(1);
+        assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
 
     }
 

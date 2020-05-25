@@ -28,7 +28,7 @@ public class EntityDTO {
     private Map<String, EntityDTO> children;
 
     @JsonIgnore
-    private boolean embeddedTypesUnsupported = false;
+    private boolean inSeparatedFile = false;
 
     public void addFieldValue(String key, String value) {
         switch (key) {
@@ -231,12 +231,12 @@ public class EntityDTO {
         return this;
     }
 
-    public boolean isEmbeddedTypesUnsupported() {
-        return embeddedTypesUnsupported;
+    public boolean isInSeparatedFile() {
+        return inSeparatedFile;
     }
 
-    public EntityDTO setEmbeddedTypesUnsupported(boolean embeddedTypesUnsupported) {
-        this.embeddedTypesUnsupported = embeddedTypesUnsupported;
+    public EntityDTO setInSeparatedFile(boolean inSeparatedFile) {
+        this.inSeparatedFile = inSeparatedFile;
         return this;
     }
 

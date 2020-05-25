@@ -64,7 +64,7 @@ public class YamlExporter {
     private void dumpAsYaml(File rootDir, String path, EntityDTO entityDTO) throws IOException {
         final File output = new File(rootDir, path);
 
-        if (entityDTO.isEmbeddedTypesUnsupported()) { // handle as directory with metadata
+        if (entityDTO.isInSeparatedFile()) { // handle as directory with metadata
             createDirectoryIfNeeded(output);
             YamlEntityStore.YAML_MAPPER.writeValue(new File(output, METADATA_FILENAME), entityDTO);
         } else { // handle as file

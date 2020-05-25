@@ -54,7 +54,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     private File rootLocation;
     private YamlPK root;
-    private final Map<String, TypeDTO> types = new LinkedHashMap<>(); // FIXME use typeMap everywhere, might end up with errors
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
     private final YamlPkBuilder yamlPkBuilder;
@@ -94,7 +93,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             loadTypes();
             loadEntities();
             long end = currentTimeMillis();
-            LOG.info("Loaded ES with {} types and {} entities in {}ms", types.size(), entities.size(), (end - start));
+            LOG.info("Loaded ES with {} types and {} entities in {}ms", typeMap.getTypeCount(), entities.size(), (end - start));
         } catch (IOException e) {
             throw new EntityStoreException("Error opening yaml store", e);
         }
@@ -117,7 +116,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
-        types.put(typeDTO.getName(), typeDTO);
         YamlEntityType type = DTOToYamlESEntityTypeConverter.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
@@ -184,7 +182,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private YamlEntity createParentEntity(File dir, YamlPK parentPK) throws IOException {
         File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
-            LOG.info("Read parent entity "+ metadata);
+            LOG.info("Read parent entity {}", metadata);
             return readEntityFromYamlFile(metadata, parentPK);
         }
         return null;
@@ -212,8 +210,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         checkNotNull(type);
 
         YamlEntity entity = new YamlEntity(type);
-        entityDTO.getMeta().setTypeDTO(types.get(type.getName()));
-
 
         Map<String, String> allFields = entityDTO.retrieveAllFields();
 
@@ -273,7 +269,6 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     }
 
     private void setReference(YamlEntity entity, YamlPK pk, String fieldValue, String fieldName) {
-        // expand ref if need TODO must be done on same file child
         if (!fieldValue.startsWith(pk.getLocation()))
             entity.setReferenceField(fieldName, new YamlPK(pk, fieldValue));
         else

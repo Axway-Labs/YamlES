@@ -70,7 +70,7 @@ public class EntityStoreToDTOConverter {
         mappedEntities.add(entityDTO);
     }
 
-    private EntityDTO mapToDTO(Entity entity, boolean embeddedTypesUnsupported) {
+    private EntityDTO mapToDTO(Entity entity, boolean allowToBeInSeparatedFile) {
 
         final String entityName = entity.getType().getName();
 
@@ -78,7 +78,7 @@ public class EntityStoreToDTOConverter {
         entityDTO.getMeta().setType(entityName); // may want to change this to the directory location of the type?
         entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
         // children?
-        entityDTO.setEmbeddedTypesUnsupported(embeddedTypesUnsupported && isNotEmbeddedable(entity));
+        entityDTO.setInSeparatedFile(allowToBeInSeparatedFile && isInSeparatedFile(entity));
         // deal with pk for this entity
         entityDTO.setKey(isRoot(entity) ? keyBuilder.getKeyValues(entity) : keyBuilder.buildKeyValue(entity));
         entityDTO.setSourceKey(entity.getPK().toString());
@@ -86,7 +86,7 @@ public class EntityStoreToDTOConverter {
         setFields(entity, entityDTO);
         setReferences(entity, entityDTO);
 
-        if (!entityDTO.isEmbeddedTypesUnsupported()) {
+        if (!entityDTO.isInSeparatedFile()) {
             for (ESPK childPK : sourceES.listChildren(entity.getPK(), null)) {
                 embeddedEntities.add(childPK);
                 Entity child = getEntity(childPK);
@@ -103,17 +103,18 @@ public class EntityStoreToDTOConverter {
         return "Root".equals(entity.getType().getName());
     }
 
-    private boolean isNotEmbeddedable(Entity entity) {
+    private boolean isInSeparatedFile(Entity entity) {
         return entity.getType().allowsChildEntities()
                 && !INLINED_TYPES.contains(entity.getType().getName())
-                && (entity.getType().extendsType("NamedLoadableModule")
-                || EXPANDED_TYPES.contains(entity.getType().getName())
-                || !entity.getType().extendsType("NamedGroup")
-                && !entity.getType().extendsType("LoadableModule")
-                && !entity.getType().extendsType("Filter")
-                && !entity.getType().extendsType("KPSStore")
-                && !entity.getType().extendsType("KPSType")
-        );
+                &&
+                (   entity.getType().extendsType("NamedLoadableModule")
+                    || EXPANDED_TYPES.contains(entity.getType().getName())
+                    || !entity.getType().extendsType("NamedGroup")
+                    && !entity.getType().extendsType("LoadableModule")
+                    && !entity.getType().extendsType("Filter")
+                    && !entity.getType().extendsType("KPSStore")
+                    && !entity.getType().extendsType("KPSType")
+                );
     }
 
     private void setFields(Entity entity, EntityDTO entityDTO) {
@@ -144,7 +145,7 @@ public class EntityStoreToDTOConverter {
                     key = ref.toString();
                 } else {
                     key = keyBuilder.buildKeyValue(ref);
-                    if (key.startsWith(entityDTO.getKey())) { // TODO when inlined
+                    if (key.startsWith(entityDTO.getKey())) {
                         key = NameUtils.toInlinedRef(key, entityDTO);
                     }
                 }
