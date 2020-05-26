@@ -12,10 +12,11 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static com.axway.gw.es.yaml.util.NameUtils.sanitize;
+import static com.axway.gw.es.yaml.util.TopLevelFolders.createDirectoryIfNeeded;
 
-public class YamlExporter {
+public class YamlEntityExporter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(YamlExporter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(YamlEntityExporter.class);
 
     public static final String YAML_EXTENSION = ".yaml";
     public static final String METADATA_FILENAME = "metadata"+YAML_EXTENSION;
@@ -24,11 +25,11 @@ public class YamlExporter {
     private final boolean saveKeyMapping;
     private EntityStoreESPKMapper<String, String> entityStoreESPKMapper;
 
-    public YamlExporter(List<EntityDTO> entityDTOList) {
+    public YamlEntityExporter(List<EntityDTO> entityDTOList) {
         this(entityDTOList, false);
     }
 
-    public YamlExporter(List<EntityDTO> entityDTOList, boolean saveKeyMapping) {
+    public YamlEntityExporter(List<EntityDTO> entityDTOList, boolean saveKeyMapping) {
         this.mappedEntities = entityDTOList;
         this.saveKeyMapping = saveKeyMapping;
         if (saveKeyMapping) {
@@ -135,13 +136,5 @@ public class YamlExporter {
 
         entityDTO.getFields().put(field + "#ref" + (base64Decode ? "base64" : ""), fileName);
     }
-
-    private static void createDirectoryIfNeeded(File directory) throws IOException {
-        if (!directory.exists() && !directory.mkdirs()) {
-            throw new IOException("Could not create directory:" + directory);
-        }
-    }
-
-
 
 }

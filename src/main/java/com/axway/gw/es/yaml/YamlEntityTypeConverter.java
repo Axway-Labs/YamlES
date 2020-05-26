@@ -10,21 +10,21 @@ import com.vordel.es.impl.ConstantField;
 
 import java.util.*;
 
-public final class DTOToYamlESEntityTypeConverter {
+public final class YamlEntityTypeConverter {
 
-    private DTOToYamlESEntityTypeConverter() {
+    private YamlEntityTypeConverter() {
         // no op
     }
 
-    private static class YamlFieldType extends FieldType {
-        public YamlFieldType(String name, Object x, List<Value> v) {
-            super(name, x, v);
+    public static class YamlFieldType extends FieldType {
+        public YamlFieldType(String name, Object cardinality, List<Value> defaultValues) {
+            super(name, cardinality, defaultValues);
         }
     }
 
-    private static class YamlConstantFieldType extends ConstantFieldType {
-        public YamlConstantFieldType(String name, Value v) {
-            super(name, v);
+    public static class YamlConstantFieldType extends ConstantFieldType {
+        public YamlConstantFieldType(String type, Value defaultValue) {
+            super(type, defaultValue);
         }
     }
 
@@ -68,6 +68,9 @@ public final class DTOToYamlESEntityTypeConverter {
         for (Map.Entry<String, String> entry : typeDTO.getComponents().entrySet()) {
             type.addComponentType(entry.getKey(), entry.getValue());
         }
+
+        type.processOptionalAndDefaultedFields();
+
         return type;
     }
 

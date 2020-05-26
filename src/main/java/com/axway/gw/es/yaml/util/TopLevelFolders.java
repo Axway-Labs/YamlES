@@ -1,5 +1,6 @@
 package com.axway.gw.es.yaml.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
@@ -57,6 +58,12 @@ public final class TopLevelFolders {
 
     public String getDefaultFolder() {
         return topLevelFoldersDTO.getDefaultFolder();
+    }
+
+    public static void createDirectoryIfNeeded(File directory) throws IOException {
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IOException("Could not create directory:" + directory);
+        }
     }
 
     static class TopLevelFoldersDTO {

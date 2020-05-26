@@ -1,5 +1,15 @@
 package com.axway.gw.es.yaml.tools;
 
+import com.axway.gw.es.yaml.YamlEntityExporter;
+import com.axway.gw.es.yaml.YamlEntityTypeImpEx;
+import com.axway.gw.es.yaml.converters.EntityStoreToDTOConverter;
+import com.axway.gw.es.yaml.converters.EntityTypeDTOConverter;
+import com.axway.gw.es.yaml.dto.entity.EntityDTO;
+import com.vordel.es.EntityStore;
+import com.vordel.es.EntityStoreFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,15 +19,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
-
-import com.axway.gw.es.yaml.YamlExporter;
-import com.axway.gw.es.yaml.converters.EntityStoreToDTOConverter;
-import com.axway.gw.es.yaml.converters.EntityTypeDTOConverter;
-import com.axway.gw.es.yaml.dto.entity.EntityDTO;
-import com.vordel.es.EntityStore;
-import com.vordel.es.EntityStoreFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.lang.System.currentTimeMillis;
 
@@ -37,6 +38,7 @@ public class ConvertToYamlStore {
         LOGGER.info("Loaded ES in {}ms", (end - start));
 
         entityTypeDTOConverter = new EntityTypeDTOConverter(inputES);
+        entityTypeDTOConverter.loadTypeAndSubtype();
         entityStoreToDTOConverter = new EntityStoreToDTOConverter(inputES, entityTypeDTOConverter.getTypes());
     }
 
@@ -59,10 +61,10 @@ public class ConvertToYamlStore {
         final List<EntityDTO> entityDTOList = entityStoreToDTOConverter.mapFromRoot();
 
         LOGGER.info("Dumping types to {}", yamlDir);
-        entityTypeDTOConverter.writeTypes(new File(yamlDir + "/META-INF"));
-        LOGGER.info("Dumping entities to {}", whereToWriteEntities);
+        new YamlEntityTypeImpEx().writeTypes(new File(yamlDir), entityTypeDTOConverter.getBaseType());
 
-        new YamlExporter(entityDTOList, writeKeyMapping).writeEntities(new File(whereToWriteEntities));
+        LOGGER.info("Dumping entities to {}", whereToWriteEntities);
+        new YamlEntityExporter(entityDTOList, writeKeyMapping).writeEntities(new File(whereToWriteEntities));
 
         LOGGER.info("Successfully extracted yaml files.");
     }

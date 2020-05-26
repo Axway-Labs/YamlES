@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static com.axway.gw.es.yaml.YamlExporter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.YamlEntityExporter.YAML_EXTENSION;
 
 
 public class EntityStoreESPKMapper<S, T> {

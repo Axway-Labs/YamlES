@@ -24,7 +24,7 @@ public class FieldDTO {
         this.name = name;
         String fieldTypeName = fieldType.getType();
         if (fieldType.isSoftRefType())
-            fieldTypeName = fieldTypeName.replace("^", "@");  // Soft does not make sens in yaml es, so we convert in hard ref (@)
+            fieldTypeName = fieldTypeName.replace(FieldType.SOFT_REF_DELIMITER, FieldType.REF_DELIMITER);  // Soft does not make sens in yaml es, so we convert in hard ref (@)
         this.type = fieldTypeName;
         this.cardinality = fieldType.getCardinality();
         this.defaultValue = fieldType.getDefault();

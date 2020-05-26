@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 
+import static java.util.stream.Collectors.toList;
+
 public class YamlEntityType implements EntityType {
 
     // name of the type
@@ -47,7 +49,25 @@ public class YamlEntityType implements EntityType {
     private byte[] cachedDoc;
 
 
+    public void processOptionalAndDefaultedFields() {
+        defaultedFields.clear();
+        getAllDeclaredFieldNames().stream()
+                .filter(fieldName -> {
+                    FieldType fieldType = fieldTypes.get(fieldName);
+                    return fieldType.getDefaultValues() !=null && !fieldType.getDefaultValues().isEmpty();
+                })
+                .forEach(defaultedFields::add);
 
+        optionalFields.clear();
+        getAllDeclaredFieldNames().stream()
+                .filter(name -> !keyFieldNames.contains(name) && !defaultedFields.contains(name))
+                .filter(fieldName -> {
+                    FieldType fieldType = fieldTypes.get(fieldName);
+                    return fieldType.getCardinality().equals(ZERO_OR_ONE) || fieldType.getCardinality().equals(ZERO_OR_MANY);
+                })
+                .forEach(optionalFields::add);
+
+    }
 
 
     @Override

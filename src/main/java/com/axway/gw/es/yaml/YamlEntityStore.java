@@ -25,10 +25,10 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.*;
 
-import static com.axway.gw.es.yaml.YamlExporter.METADATA_FILENAME;
-import static com.axway.gw.es.yaml.YamlExporter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.YamlEntityExporter.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.YamlEntityExporter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.YamlEntityTypeImpEx.TYPES_DIR;
 import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.KEY_MAPPING_FILENAME;
-import static com.axway.gw.es.yaml.converters.EntityTypeDTOConverter.TYPES_FILE;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
 
@@ -46,7 +46,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         ((YAMLFactory) YAML_MAPPER.getFactory()).configure(YAMLGenerator.Feature.SPLIT_LINES, false);
 
-        NON_ENTITY_FILES.add("META-INF");
+        NON_ENTITY_FILES.add(TYPES_DIR);
         NON_ENTITY_FILES.add(METADATA_FILENAME);
         NON_ENTITY_FILES.add(KEY_MAPPING_FILENAME);
 
@@ -57,10 +57,12 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
     private final YamlPkBuilder yamlPkBuilder;
+    private final YamlEntityTypeImpEx yamlEntityTypeImpEx;
 
 
     public YamlEntityStore() {
         yamlPkBuilder = new YamlPkBuilder(this);
+        yamlEntityTypeImpEx = new YamlEntityTypeImpEx();
     }
 
     /**
@@ -110,13 +112,13 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     void loadTypes() throws IOException {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
-        TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
+        TypeDTO typeDTO = yamlEntityTypeImpEx.readTypes(rootLocation);
         // for the moment load everything into memory rather than on demand
         loadType(typeDTO, null);
     }
 
     private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
-        YamlEntityType type = DTOToYamlESEntityTypeConverter.convert(typeDTO);
+        YamlEntityType type = YamlEntityTypeConverter.convert(typeDTO);
         type.setSuperType(parent);
         addType(type);
         for (TypeDTO yChild : typeDTO.getChildren()) {
@@ -542,7 +544,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      */
     @Override
     public ESPK decodePK(String stringifiedPK) {
-        throw new UnsupportedOperationException();
+        return new YamlPK(stringifiedPK);
     }
 
     @Override
@@ -552,6 +554,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     @Override
     protected void persistType(EntityType type) {
+        ((YamlEntityType)type).processOptionalAndDefaultedFields();
         typeMap.addType(type);
     }
 
