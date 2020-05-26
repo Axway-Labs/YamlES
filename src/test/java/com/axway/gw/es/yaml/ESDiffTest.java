@@ -1,11 +1,11 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.utils.ESDiff;
+import com.axway.gw.es.yaml.testutils.ESDiff;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
-import static com.axway.gw.es.yaml.utils.ESTestsUtil.assertDiffCount;
+import static com.axway.gw.es.yaml.testutils.ESTestsUtil.assertDiffCount;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ESDiffTest {

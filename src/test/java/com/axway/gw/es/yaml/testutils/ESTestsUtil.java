@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.testutils;
 
 import com.axway.gw.es.yaml.YamlEntityStoreRefsTest;
 

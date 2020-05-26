@@ -2,9 +2,8 @@ package com.axway.gw.es.yaml;
 
 import com.axway.gw.es.yaml.dto.entity.EntityDTO;
 import com.axway.gw.es.yaml.dto.entity.RoutingDTO;
+import com.google.common.base.Splitter;
 import com.vordel.es.*;
-import org.checkerframework.common.aliasing.qual.MaybeAliased;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,9 +14,8 @@ import java.io.IOException;
 import java.util.Collection;
 
 import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
-import static com.axway.gw.es.yaml.YamlPkBuilder.DEFAULT_CATEGORY;
-import static com.axway.gw.es.yaml.YamlPkBuilder.POLICIES;
-import static com.axway.gw.es.yaml.utils.ESTestsUtil.getFileFromClasspath;
+import static com.axway.gw.es.yaml.YamlPK.CHILD_SEPARATOR;
+import static com.axway.gw.es.yaml.testutils.ESTestsUtil.getFileFromClasspath;
 import static org.assertj.core.api.Assertions.*;
 
 public class YamlEntityStoreRefsTest {
@@ -90,20 +88,15 @@ public class YamlEntityStoreRefsTest {
         assertThat(namedChildren).hasSize(1);
         assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
 
-        EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]**/[" + startNodeTargetType + "]name=" + startFieldShortRef);
-        assertThat(namedChildren).hasSize(1);
-        assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
+        final String entityKeyField = Splitter.on(CHILD_SEPARATOR)
+                .splitToList(entityPK)
+                .get(1);
+        Entity foundEntity = EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]name=" + entityKeyField + "/[" + startNodeTargetType + "]name=" + startFieldShortRef);
+        assertThat(foundEntity).isNotNull();
+        assertThat(foundEntity.getPK()).isEqualTo(startESPK);
 
     }
 
-    @Test
-    public void should_assert_that_ref_is_absolute() throws Exception {
-        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(DEFAULT_CATEGORY + "/Foo")).isTrue();
-        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(POLICIES + "/Foo")).isTrue();
-        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef("Bar/Foo")).isFalse();
-        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef("Foo")).isFalse();
-        assertThatThrownBy(()->new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(null)).isInstanceOf(NullPointerException.class);
-    }
 
     @Test
     public void should_resolve_relative_refs() {

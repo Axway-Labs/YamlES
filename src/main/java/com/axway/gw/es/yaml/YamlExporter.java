@@ -18,10 +18,7 @@ public class YamlExporter {
     private static final Logger LOGGER = LoggerFactory.getLogger(YamlExporter.class);
 
     public static final String YAML_EXTENSION = ".yaml";
-    public static final String METADATA_FILENAME = "metadata.yaml";
-
-
-
+    public static final String METADATA_FILENAME = "metadata"+YAML_EXTENSION;
 
     private final List<EntityDTO> mappedEntities;
     private final boolean saveKeyMapping;

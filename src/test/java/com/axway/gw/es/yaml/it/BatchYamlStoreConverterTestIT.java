@@ -8,17 +8,13 @@ import com.axway.gw.es.yaml.YamlEntityStore;
 import com.axway.gw.es.yaml.YamlPK;
 import com.axway.gw.es.yaml.converters.EntityStoreESPKMapper;
 import com.axway.gw.es.yaml.tools.ConvertToYamlStore;
-import com.axway.gw.es.yaml.util.NameUtils;
-import com.axway.gw.es.yaml.utils.ESDiff;
-import com.vordel.es.ESPK;
-import com.vordel.es.EntityStore;
+import com.axway.gw.es.yaml.testutils.ESDiff;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static com.axway.gw.es.yaml.utils.ESTestsUtil.assertDiffCount;
+import static com.axway.gw.es.yaml.testutils.ESTestsUtil.assertDiffCount;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.atomicMarkableReference;
 
 public class BatchYamlStoreConverterTestIT {
 
@@ -31,7 +27,7 @@ public class BatchYamlStoreConverterTestIT {
             "TeamDevelopmentAPI",
             "TeamDevelopmentSettings",
             "TeamDevelopmentSettingsAPIM"})
-    //@Disabled
+    @Disabled
     public void convertFactoryTemplate(String project) throws InterruptedException, IOException {
 
         final String yamlDir = YAML_OUTPUT_DIR + project;

@@ -1,4 +1,4 @@
-package com.axway.gw.es.yaml.utils;
+package com.axway.gw.es.yaml.testutils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.vordel.es.*;
 
 import java.io.File;

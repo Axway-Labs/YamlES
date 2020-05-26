@@ -139,25 +139,30 @@ public class EntityStoreToDTOConverter {
         for (Field field : entity.getReferenceFields()) {
             ESPK fieldRef = field.getReference(); // just deal with single at the moment
             if (!fieldRef.equals(EntityStore.ES_NULL_PK)) {
-                String dtoFieldRef;
+                final String dtoFieldRef;
                 if (isLateBoundReference(fieldRef)) {
                     dtoFieldRef = fieldRef.toString();
                 } else {
-                    dtoFieldRef = keyBuilder.buildKeyValue(fieldRef);
-                    // when the current entity makes a ref to one of his children
-                    if (isParentDTO && dtoFieldRef.startsWith(entityDTO.getKey())) {
-                        dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, entityDTO);
-                    } else if (!isParentDTO && entity.getParentPK() != null) {
-                        final String parentRef = keyBuilder.buildKeyValue(entity.getParentPK());
-                        // if a the ref is a sibling (is child of the same parent)
-                        if (dtoFieldRef.startsWith(parentRef)) {
-                            dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, parentRef);
-                        }
-                    }
+                    dtoFieldRef = buildRefValue(entity, entityDTO, isParentDTO, fieldRef);
                 }
                 entityDTO.addFieldValue(field.getName(), dtoFieldRef);
             }
         }
+    }
+
+    private String buildRefValue(Entity entity, EntityDTO entityDTO, boolean isParentDTO, ESPK fieldRef) {
+        String dtoFieldRef = keyBuilder.buildKeyValue(fieldRef);
+        // when the current entity makes a ref to one of his children
+        if (isParentDTO && dtoFieldRef.startsWith(entityDTO.getKey())) {
+            dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, entityDTO);
+        } else if (!isParentDTO && entity.getParentPK() != null) {
+            final String parentRef = keyBuilder.buildKeyValue(entity.getParentPK());
+            // if a the ref is a sibling (is child of the same parent)
+            if (dtoFieldRef.startsWith(parentRef)) {
+                dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, parentRef);
+            }
+        }
+        return dtoFieldRef;
     }
 
     private boolean isLateBoundReference(final ESPK pk) {
