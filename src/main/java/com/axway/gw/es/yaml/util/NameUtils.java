@@ -1,5 +1,6 @@
 package com.axway.gw.es.yaml.util;
 
+import com.axway.gw.es.yaml.YamlPK;
 import com.axway.gw.es.yaml.dto.entity.EntityDTO;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -20,10 +21,16 @@ public class NameUtils {
         return name.trim().replaceAll("[/:\"*?<>|]+", "_");
     }
 
-    public static String toInlinedRef(String key, EntityDTO entityDTO) {
-        checkNotNull(key);
-        checkNotNull(entityDTO);
-        return key.substring(entityDTO.getKey().length() + 1);
+    public static String toRelativeRef(String childRef, EntityDTO parentDTO) {
+        checkNotNull(childRef);
+        checkNotNull(parentDTO);
+        return toRelativeRef(childRef, parentDTO.getKey());
+    }
+
+    public static String toRelativeRef(String absoluteRef, String parentKey) {
+        checkNotNull(parentKey);
+        checkNotNull(absoluteRef);
+        return absoluteRef.replace(parentKey + YamlPK.CHILD_SEPARATOR, "");
     }
 
 

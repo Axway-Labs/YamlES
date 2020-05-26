@@ -9,7 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.axway.gw.es.yaml.YamlPK.CHILD_SEPARATOR;
 import static com.axway.gw.es.yaml.util.NameUtils.sanitize;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class YamlPkBuilder {
 
@@ -24,7 +26,19 @@ public class YamlPkBuilder {
     public static final String SERVER_SETTINGS = "Server Settings";
 
     private static final Map<String, String> ENTITIES_CATEGORIES = new HashMap<>();
+    private static final List<String> TOP_CATEGORY = new ArrayList<>();
+
     static {
+
+        TOP_CATEGORY.add(DEFAULT_CATEGORY);
+        TOP_CATEGORY.add(POLICIES);
+        TOP_CATEGORY.add(APIS);
+        TOP_CATEGORY.add(RESOURCES);
+        TOP_CATEGORY.add(ENVIRONMENT_CONFIGURATION);
+        TOP_CATEGORY.add(LIBRARIES);
+        TOP_CATEGORY.add(EXTERNAL_CONNECTIONS);
+        TOP_CATEGORY.add(SERVER_SETTINGS);
+
         ENTITIES_CATEGORIES.put("Root", "");
 
         ENTITIES_CATEGORIES.put("FilterCircuit", POLICIES);
@@ -91,6 +105,8 @@ public class YamlPkBuilder {
         ENTITIES_CATEGORIES.put("ZeroDowntime", SERVER_SETTINGS);
     }
 
+
+
     private final EntityStore entityStore;
 
     public YamlPkBuilder(EntityStore entityStore) {
@@ -110,7 +126,7 @@ public class YamlPkBuilder {
                 builder.append(getTopLevel(entity.getType().getName()));
             }
             if (builder.length() > 0) {
-                builder.append('/');
+                builder.append(CHILD_SEPARATOR);
             }
             String name = getKeyValues(entity);
             builder.append(name);
@@ -168,5 +184,14 @@ public class YamlPkBuilder {
     public Entity getEntity(ESPK key) {
         final ESPK espk = EntityStoreDelegate.getEntityForKey(entityStore, key);
         return entityStore.getEntity(espk);
+    }
+
+    public boolean isAbsoluteRef(String ref) {
+        checkNotNull(ref);
+        final int firstSlashPos = ref.indexOf(CHILD_SEPARATOR);
+        if (firstSlashPos >=0) {
+            return TOP_CATEGORY.contains(ref.substring(0, firstSlashPos));
+        }
+        return false;
     }
 }

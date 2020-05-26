@@ -191,17 +191,17 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     YamlEntity readEntityFromYamlFile(File file, YamlPK parentPK) throws IOException {
         EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
 
-        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file);
+        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file, false);
 
         if (entityDTO.getChildren() != null) {
             for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file);
+                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file, true);
             }
         }
         return entity;
     }
 
-    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file) throws
+    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, boolean isEmbeddedChild) throws
             IOException {
 
         File dir = file.getParentFile();
@@ -247,11 +247,9 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             if (!type.isConstantField(fieldName) &&
                     (fieldType.isRefType() ||
                             fieldType.isSoftRefType())) {
-                setReference(entity, pk, fieldEntry.getValue(), fieldName);
+                setReference(entity, fieldEntry.getValue(), fieldName, isEmbeddedChild);
             }
         }
-
-
 
         entities.add(parentPK, entity);
         return entity;
@@ -268,11 +266,12 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         return new YamlPK(location);
     }
 
-    private void setReference(YamlEntity entity, YamlPK pk, String fieldValue, String fieldName) {
-        if (!fieldValue.startsWith(pk.getLocation()))
-            entity.setReferenceField(fieldName, new YamlPK(pk, fieldValue));
+    private void setReference(YamlEntity entity, String ref, String fieldName, boolean isEmbeddedChild) {
+        // if relative ref => make it absolute (works with child and siblings refs)
+        if (!yamlPkBuilder.isAbsoluteRef(ref))
+            entity.setReferenceField(fieldName, new YamlPK(isEmbeddedChild ? entity.getParentPK() : entity.getPK(), ref));
         else
-            entity.setReferenceField(fieldName, new YamlPK(fieldValue));
+            entity.setReferenceField(fieldName, new YamlPK(ref));
     }
 
     private String readFieldValueFromFile(File dir, String fileName, boolean isBase64) throws IOException {

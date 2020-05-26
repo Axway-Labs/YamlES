@@ -1,8 +1,12 @@
 package com.axway.gw.es.yaml;
 
 import com.axway.gw.es.yaml.dto.entity.EntityDTO;
+import com.axway.gw.es.yaml.dto.entity.RoutingDTO;
 import com.vordel.es.*;
+import org.checkerframework.common.aliasing.qual.MaybeAliased;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -11,9 +15,10 @@ import java.io.IOException;
 import java.util.Collection;
 
 import static com.axway.gw.es.yaml.YamlEntityStore.YAML_MAPPER;
+import static com.axway.gw.es.yaml.YamlPkBuilder.DEFAULT_CATEGORY;
+import static com.axway.gw.es.yaml.YamlPkBuilder.POLICIES;
 import static com.axway.gw.es.yaml.utils.ESTestsUtil.getFileFromClasspath;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.not;
+import static org.assertj.core.api.Assertions.*;
 
 public class YamlEntityStoreRefsTest {
 
@@ -32,6 +37,7 @@ public class YamlEntityStoreRefsTest {
         assertThat(yamlEntityStore.getRootPK()).isNotNull();
     }
 
+    // We load policies whereever ref should be OK.
     @ParameterizedTest
     @CsvSource({
             "policies/API Manager Protection Policy.yaml,Policies/API Manager Protection Policy,Disable Monitoring,11,SetAttributeFilter",
@@ -47,6 +53,7 @@ public class YamlEntityStoreRefsTest {
         // get entity in ES
         final Entity entity = yamlEntityStore.getEntity(new YamlPK(entityPK));
         assertThat(entity).isNotNull();
+        assertThat(entity.getPK().toString()).isEqualTo(entityPK);
 
         // check the number of children
         assertThat(yamlEntityStore.findChildren(entity.getPK(), null, null)).hasSize(childrenCount);
@@ -60,7 +67,7 @@ public class YamlEntityStoreRefsTest {
         assertThat(startRef).isInstanceOf(YamlPK.class);
 
         final ESPK startESPK = (ESPK) startRef;
-        assertThat(startESPK.toString()).isEqualTo(entityPK + '/' + startFieldShortRef);
+        assertThat(startESPK).isEqualTo(new YamlPK(entity.getPK(), startFieldShortRef));
         assertThat(yamlEntityStore.findChildren(entity.getPK(), null, null)).contains(startESPK);
 
         // get object from Ref
@@ -83,10 +90,29 @@ public class YamlEntityStoreRefsTest {
         assertThat(namedChildren).hasSize(1);
         assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
 
-        EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]**/["+startNodeTargetType+"]name="+startFieldShortRef);
+        EntityStoreDelegate.getEntity(yamlEntityStore, "/[FilterCircuit]**/[" + startNodeTargetType + "]name=" + startFieldShortRef);
         assertThat(namedChildren).hasSize(1);
         assertThat(namedChildren.iterator().next()).isEqualTo(startESPK);
 
+    }
+
+    @Test
+    public void should_assert_that_ref_is_absolute() throws Exception {
+        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(DEFAULT_CATEGORY + "/Foo")).isTrue();
+        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(POLICIES + "/Foo")).isTrue();
+        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef("Bar/Foo")).isFalse();
+        assertThat(new YamlPkBuilder(yamlEntityStore).isAbsoluteRef("Foo")).isFalse();
+        assertThatThrownBy(()->new YamlPkBuilder(yamlEntityStore).isAbsoluteRef(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void should_resolve_relative_refs() {
+        final Entity parentEntity = yamlEntityStore.getEntity(new YamlPK("Policies/API Manager Protection Policy"));
+        assertThat(parentEntity.get("start")).isEqualTo(new YamlPK("Policies/API Manager Protection Policy/Disable Monitoring"));
+        final Entity entity = yamlEntityStore.getEntity(new YamlPK("Policies/API Manager Protection Policy/Load API Manager Login Page"));
+        assertThat(entity.get(RoutingDTO.SUCCESS_NODE)).isEqualTo(new YamlPK("Policies/API Manager Protection Policy/Send Login Page"));
+        assertThat(yamlEntityStore.getEntity((ESPK) entity.get(RoutingDTO.SUCCESS_NODE))).isNotNull();
+        assertThat(yamlEntityStore.getEntity((ESPK) entity.get(RoutingDTO.SUCCESS_NODE)).getStringValue("name")).isEqualTo("Send Login Page");
     }
 
 }

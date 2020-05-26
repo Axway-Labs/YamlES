@@ -70,8 +70,8 @@ children:
       treatFileAs: "CONTENT_TYPE"
       workDir: ""
     routing:
-      successNode: "Policies/API Manager Policies/API Manager Protection Policy/Send\
-        \ Login Page"
+      successNode: "Send Login Page"
+      # this should be resolved in "Policies/API Manager Protection Policy/Send Login Page"
     logging:
       category: "System/Filter Categories/miscellaneous"
   Add Secure Headers:

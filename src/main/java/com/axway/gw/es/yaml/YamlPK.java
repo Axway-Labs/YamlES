@@ -9,6 +9,7 @@ import java.util.Objects;
  */
 public class YamlPK implements com.vordel.es.ESPK {
 
+    public static final char CHILD_SEPARATOR = '/';
     private final String location;
 
     public YamlPK(String location) {
@@ -19,7 +20,7 @@ public class YamlPK implements com.vordel.es.ESPK {
         if (path == null || path.isEmpty()) {
             throw new IllegalArgumentException("Invalid key parent=" + parent + " path=" + path);
         }
-        this.location = parent.toString() + "/" + path;
+        this.location = parent.toString() + CHILD_SEPARATOR + path;
     }
 
     @Override

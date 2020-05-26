@@ -31,7 +31,7 @@ public class BatchYamlStoreConverterTestIT {
             "TeamDevelopmentAPI",
             "TeamDevelopmentSettings",
             "TeamDevelopmentSettingsAPIM"})
-    @Disabled
+    //@Disabled
     public void convertFactoryTemplate(String project) throws InterruptedException, IOException {
 
         final String yamlDir = YAML_OUTPUT_DIR + project;

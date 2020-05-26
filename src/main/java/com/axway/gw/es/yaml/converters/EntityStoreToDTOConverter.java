@@ -78,13 +78,13 @@ public class EntityStoreToDTOConverter {
         entityDTO.getMeta().setType(entityName); // may want to change this to the directory location of the type?
         entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
         // children?
-        entityDTO.setInSeparatedFile(allowToBeInSeparatedFile && isInSeparatedFile(entity));
+        entityDTO.setInSeparatedFile(allowToBeInSeparatedFile && isShouldBeInSeparatedFile(entity));
         // deal with pk for this entity
         entityDTO.setKey(isRoot(entity) ? keyBuilder.getKeyValues(entity) : keyBuilder.buildKeyValue(entity));
         entityDTO.setSourceKey(entity.getPK().toString());
         // fields
         setFields(entity, entityDTO);
-        setReferences(entity, entityDTO);
+        setReferences(entity, entityDTO, allowToBeInSeparatedFile);
 
         if (!entityDTO.isInSeparatedFile()) {
             for (ESPK childPK : sourceES.listChildren(entity.getPK(), null)) {
@@ -103,17 +103,17 @@ public class EntityStoreToDTOConverter {
         return "Root".equals(entity.getType().getName());
     }
 
-    private boolean isInSeparatedFile(Entity entity) {
+    private boolean isShouldBeInSeparatedFile(Entity entity) {
         return entity.getType().allowsChildEntities()
                 && !INLINED_TYPES.contains(entity.getType().getName())
                 &&
-                (   entity.getType().extendsType("NamedLoadableModule")
-                    || EXPANDED_TYPES.contains(entity.getType().getName())
-                    || !entity.getType().extendsType("NamedGroup")
-                    && !entity.getType().extendsType("LoadableModule")
-                    && !entity.getType().extendsType("Filter")
-                    && !entity.getType().extendsType("KPSStore")
-                    && !entity.getType().extendsType("KPSType")
+                (entity.getType().extendsType("NamedLoadableModule")
+                        || EXPANDED_TYPES.contains(entity.getType().getName())
+                        || !entity.getType().extendsType("NamedGroup")
+                        && !entity.getType().extendsType("LoadableModule")
+                        && !entity.getType().extendsType("Filter")
+                        && !entity.getType().extendsType("KPSStore")
+                        && !entity.getType().extendsType("KPSType")
                 );
     }
 
@@ -135,21 +135,27 @@ public class EntityStoreToDTOConverter {
         }
     }
 
-    private void setReferences(Entity value, EntityDTO entityDTO) {
-        List<Field> refs = value.getReferenceFields();
-        for (Field field : refs) {
-            ESPK ref = field.getReference(); // just deal with single at the moment
-            if (!ref.equals(EntityStore.ES_NULL_PK)) {
-                String key;
-                if (isLateBoundReference(ref)) {
-                    key = ref.toString();
+    private void setReferences(Entity entity, EntityDTO entityDTO, boolean isParentDTO) {
+        for (Field field : entity.getReferenceFields()) {
+            ESPK fieldRef = field.getReference(); // just deal with single at the moment
+            if (!fieldRef.equals(EntityStore.ES_NULL_PK)) {
+                String dtoFieldRef;
+                if (isLateBoundReference(fieldRef)) {
+                    dtoFieldRef = fieldRef.toString();
                 } else {
-                    key = keyBuilder.buildKeyValue(ref);
-                    if (key.startsWith(entityDTO.getKey())) {
-                        key = NameUtils.toInlinedRef(key, entityDTO);
+                    dtoFieldRef = keyBuilder.buildKeyValue(fieldRef);
+                    // when the current entity makes a ref to one of his children
+                    if (isParentDTO && dtoFieldRef.startsWith(entityDTO.getKey())) {
+                        dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, entityDTO);
+                    } else if (!isParentDTO && entity.getParentPK() != null) {
+                        final String parentRef = keyBuilder.buildKeyValue(entity.getParentPK());
+                        // if a the ref is a sibling (is child of the same parent)
+                        if (dtoFieldRef.startsWith(parentRef)) {
+                            dtoFieldRef = NameUtils.toRelativeRef(dtoFieldRef, parentRef);
+                        }
                     }
                 }
-                entityDTO.addFieldValue(field.getName(), key);
+                entityDTO.addFieldValue(field.getName(), dtoFieldRef);
             }
         }
     }

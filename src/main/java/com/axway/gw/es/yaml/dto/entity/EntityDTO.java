@@ -117,7 +117,7 @@ public class EntityDTO {
 
     public void addChild(EntityDTO child) {
         initChildren();
-        children.put(NameUtils.toInlinedRef(child.key, this), child);
+        children.put(NameUtils.toRelativeRef(child.key, this), child);
     }
 
     private void putNonNull(Map<String, String> map, String name, String value) {
