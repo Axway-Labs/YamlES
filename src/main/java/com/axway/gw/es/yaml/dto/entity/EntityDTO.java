@@ -1,6 +1,6 @@
 package com.axway.gw.es.yaml.dto.entity;
 
-import com.axway.gw.es.yaml.dto.type.FieldDTO;
+import com.axway.gw.es.yaml.dto.type.ValueDTO;
 import com.axway.gw.es.yaml.util.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -152,10 +152,8 @@ public class EntityDTO {
 
 
     public String buildKeyValue() {
-        String keyDescription = meta.getTypeDTO().getFields().values()
+        String keyDescription = meta.getTypeDTO().getKeyFields()
                 .stream()
-                .filter(FieldDTO::isKeyField)
-                .map(keyField -> getFieldValue(keyField.getName()))
                 .collect(Collectors.joining("$"));
         return keyDescription.isEmpty() ? meta.getType() : keyDescription;
     }
@@ -168,7 +166,12 @@ public class EntityDTO {
                 return value;
             }
         }
-        return meta.getTypeDTO().getDefaultValue(fieldName);
+        final ValueDTO defaultValue = meta.getTypeDTO().getDefaultValue(fieldName);
+        if (defaultValue.getRef() != null) {
+            return defaultValue.getRef();
+        } else {
+            return defaultValue.getData();
+        }
     }
 
 

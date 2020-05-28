@@ -554,7 +554,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     @Override
     protected void persistType(EntityType type) {
-        ((YamlEntityType)type).processOptionalAndDefaultedFields();
+        ((YamlEntityType) type).processOptionalAndDefaultedFields();
         typeMap.addType(type);
     }
 

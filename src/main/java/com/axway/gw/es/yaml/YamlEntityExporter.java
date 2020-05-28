@@ -19,7 +19,7 @@ public class YamlEntityExporter {
     private static final Logger LOGGER = LoggerFactory.getLogger(YamlEntityExporter.class);
 
     public static final String YAML_EXTENSION = ".yaml";
-    public static final String METADATA_FILENAME = "metadata"+YAML_EXTENSION;
+    public static final String METADATA_FILENAME = "metadata" + YAML_EXTENSION;
 
     private final List<EntityDTO> mappedEntities;
     private final boolean saveKeyMapping;
@@ -32,9 +32,7 @@ public class YamlEntityExporter {
     public YamlEntityExporter(List<EntityDTO> entityDTOList, boolean saveKeyMapping) {
         this.mappedEntities = entityDTOList;
         this.saveKeyMapping = saveKeyMapping;
-        if (saveKeyMapping) {
-            entityStoreESPKMapper = new EntityStoreESPKMapper<>();
-        }
+        entityStoreESPKMapper = new EntityStoreESPKMapper<>();
     }
 
     public void writeEntities(File rootDir) throws IOException {
@@ -47,7 +45,7 @@ public class YamlEntityExporter {
 
         for (EntityDTO entityDTO : mappedEntities) {
             // deal with pk for parent  entity
-            if("Root".equals(entityDTO.getMeta().getType())) {
+            if ("Root".equals(entityDTO.getMeta().getType())) {
                 // No path for root
                 dumpAsYaml(rootDir, "", entityDTO);
             } else {
@@ -55,7 +53,9 @@ public class YamlEntityExporter {
             }
         }
 
-        entityStoreESPKMapper.writeFederatedToYamlPkMapping(rootDir);
+        if (saveKeyMapping) {
+            entityStoreESPKMapper.writePKPairs(rootDir);
+        }
 
     }
 
@@ -73,7 +73,7 @@ public class YamlEntityExporter {
         }
 
         if (saveKeyMapping) {
-            entityStoreESPKMapper.addKeyPair(entityDTO.getSourceKey(), entityDTO.getKey());
+            entityStoreESPKMapper.addPKPair(entityDTO.getSourceKey(), entityDTO.getKey());
         }
 
     }

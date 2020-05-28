@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class EntityStoreToDTOConverter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(EntityStoreToDTOConverter.class);
+public class EntityToDTOConverter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityToDTOConverter.class);
 
     private static final Set<String> EXPANDED_TYPES = new HashSet<>(Arrays.asList("KPSRoot"));
     private static final Set<String> INLINED_TYPES = new HashSet<>(Arrays.asList(
@@ -42,7 +42,7 @@ public class EntityStoreToDTOConverter {
     private final Map<String, TypeDTO> types;
     private final YamlPkBuilder keyBuilder;
 
-    public EntityStoreToDTOConverter(EntityStore sourceES, Map<String, TypeDTO> types) {
+    public EntityToDTOConverter(EntityStore sourceES, Map<String, TypeDTO> types) {
         this.sourceES = sourceES;
         this.types = types;
         this.keyBuilder = new YamlPkBuilder(sourceES);
@@ -128,7 +128,8 @@ public class EntityStoreToDTOConverter {
                     if (!isDefaultValue((ConstantField) field, fieldValue)) {
                         entityDTO.addFieldValue(fieldName, fieldValue);
                     }
-                } else if (!types.get(entityDTO.getMeta().getType()).isDefaultValue(fieldName, fieldValue)) {
+                } else if (!types.get(entityDTO.getMeta().getType()).isDefaultValue(fieldName, fieldValue))
+                {
                     entityDTO.addFieldValue(fieldName, fieldValue);
                 }
             }

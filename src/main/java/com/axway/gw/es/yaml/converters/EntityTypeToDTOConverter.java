@@ -9,13 +9,14 @@ import com.vordel.es.FieldType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 
-public class EntityTypeDTOConverter {
-    private static final Logger log = LoggerFactory.getLogger(EntityTypeDTOConverter.class);
+public class EntityTypeToDTOConverter {
+    private static final Logger log = LoggerFactory.getLogger(EntityTypeToDTOConverter.class);
 
 
     // // types map contains root children of the entity store
@@ -23,7 +24,7 @@ public class EntityTypeDTOConverter {
     private TypeDTO baseType;
     private final EntityStore sourceES;
 
-    public EntityTypeDTOConverter(EntityStore sourceES) {
+    public EntityTypeToDTOConverter(EntityStore sourceES) {
         this.sourceES = sourceES;
     }
 
@@ -57,27 +58,21 @@ public class EntityTypeDTOConverter {
 
         TypeDTO typeDTO = new TypeDTO(entityType.getName());
         typeDTO.setAbstract(entityType.isAbstract());
-        // fields
-        Collection<String> keyFields = entityType.getAllDeclaredKeyFields();
         for (String name : entityType.getAllDeclaredFieldNames()) {
             FieldType fieldType = entityType.getFieldType(name);
             if (fieldType instanceof ConstantFieldType) {
                 typeDTO.addConstant(name, (ConstantFieldType) fieldType);
             } else {
                 FieldDTO fieldDTO = new FieldDTO(name, fieldType);
-                if (keyFields.contains(name))
-                    fieldDTO.setKeyField(true);
                 typeDTO.getFields().put(name, fieldDTO);
             }
         }
+        // key fields
+        Collection<String> keyFields = entityType.getAllDeclaredKeyFields();
+        typeDTO.setKeyFields(new ArrayList<>(keyFields));
 
-        // children
-        Map<String, Object> components = entityType.getDeclaredComponentTypes();
-        for (Map.Entry<String, Object> entry : components.entrySet()) {
-            String name = entry.getKey();
-            Object value = entry.getValue();
-            typeDTO.getComponents().put(name, value.toString());
-        }
+        // components
+        entityType.getDeclaredComponentTypes().forEach((name,value)->typeDTO.getComponents().put(name, value));
 
         TypeDTO old = types.put(typeName, typeDTO);
         if (old != null) {

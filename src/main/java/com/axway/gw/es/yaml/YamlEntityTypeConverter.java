@@ -8,7 +8,9 @@ import com.vordel.es.FieldType;
 import com.vordel.es.Value;
 import com.vordel.es.impl.ConstantField;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class YamlEntityTypeConverter {
 
@@ -33,17 +35,16 @@ public final class YamlEntityTypeConverter {
         type.setAbstractEntity(typeDTO.isAbstract());
         type.setName(typeDTO.getName());
 
-
-        if(typeDTO.getVersion() != null) {
+        if (typeDTO.getVersion() != null) {
             ConstantField constantField = createConstantField(YamlConstantFieldsNames.VERSION_FIELD_NAME, "integer", Integer.toString(typeDTO.getVersion()));
             type.addConstantField(constantField);
         }
 
-        if(typeDTO.getClazz() != null) {
+        if (typeDTO.getClazz() != null) {
             ConstantField constantField = createConstantField(YamlConstantFieldsNames.CLASS_FIELD_NAME, "string", typeDTO.getClazz());
             type.addConstantField(constantField);
         }
-        if(typeDTO.getLoadOrder() != null && typeDTO.getLoadOrder() != 0) {
+        if (typeDTO.getLoadOrder() != null) {
             ConstantField constantField = createConstantField(YamlConstantFieldsNames.LOAD_ORDER_FIELD_NAME, "integer", Integer.toString(typeDTO.getLoadOrder()));
             type.addConstantField(constantField);
         }
@@ -57,21 +58,38 @@ public final class YamlEntityTypeConverter {
         }
         // fields
         for (Map.Entry<String, FieldDTO> entry : typeDTO.getFields().entrySet()) {
-            FieldDTO field = entry.getValue();
-            field.setName(entry.getKey());
-            FieldType ft = new YamlFieldType(field.getType(), field.getCardinality(), Collections.singletonList( new Value((String) null))); // there must be one value even is null
-            type.addFieldType(field.getName(), ft);
-            if (field.isKeyField())
-                type.addKeyFieldName(field.getName());
+            final String fieldName = entry.getKey();
+            final FieldDTO fieldDTO = entry.getValue();
+            FieldType fieldType = new YamlFieldType(
+                    getDTOFieldType(fieldDTO),
+                    fieldDTO.getCardinality(),
+                    fieldDTO.getDefaultValues()
+                            .stream()
+                            .map(dto -> dto.getRef() != null ? new Value(new YamlPK(dto.getRef())) : new Value(dto.getData()))
+                            .collect(Collectors.toList())
+            );
+            type.addFieldType(fieldName, fieldType);
         }
+
+        // key fields
+        typeDTO.getKeyFields().forEach(type::addKeyFieldName);
+
         // components
-        for (Map.Entry<String, String> entry : typeDTO.getComponents().entrySet()) {
+        for (Map.Entry<String, Object> entry : typeDTO.getComponents().entrySet()) {
             type.addComponentType(entry.getKey(), entry.getValue());
         }
 
         type.processOptionalAndDefaultedFields();
 
         return type;
+    }
+
+    private static String getDTOFieldType(FieldDTO fieldDTO) {
+        String dtoFieldType = fieldDTO.getType();
+        if (dtoFieldType.charAt(0) == FieldType.SOFT_REF_DELIMITER) {
+            dtoFieldType = FieldType.REF_DELIMITER + dtoFieldType.substring(1);
+        }
+        return dtoFieldType;
     }
 
     private static ConstantField createConstantField(String name, String type, String value) {

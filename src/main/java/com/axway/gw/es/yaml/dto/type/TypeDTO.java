@@ -1,6 +1,7 @@
 package com.axway.gw.es.yaml.dto.type;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vordel.es.ConstantFieldType;
 import com.vordel.es.FieldType;
@@ -15,12 +16,14 @@ public class TypeDTO {
 
     private String name;
 
+    @JsonInclude
     private Integer version;
 
     @JsonProperty(CLASS_FIELD_NAME)
     private String clazz;
 
     @JsonProperty(LOAD_ORDER_FIELD_NAME)
+    @JsonInclude
     private Integer loadOrder;
 
     @JsonIgnore
@@ -31,8 +34,9 @@ public class TypeDTO {
 
     private Map<String, ConstantFieldDTO> constants = new LinkedHashMap<>();
     private Map<String, FieldDTO> fields = new LinkedHashMap<>();
-    private Map<String, String> components = new LinkedHashMap<>();
+    private Map<String, Object> components = new LinkedHashMap<>();
     private List<TypeDTO> children = new ArrayList<>();
+    private List<String> keyFields = new ArrayList<>();
 
     public TypeDTO() {
         // for parsers
@@ -45,11 +49,6 @@ public class TypeDTO {
     public void addChild(TypeDTO t) {
         children.add(t);
         t.parent = this;
-    }
-
-    @JsonIgnore
-    public boolean hasChild() {
-        return !children.isEmpty();
     }
 
     public List<TypeDTO> getChildren() {
@@ -77,20 +76,63 @@ public class TypeDTO {
         FieldDTO field = fields.get(fieldName);
         if (field == null && parent != null) {
             return parent.isDefaultValue(fieldName, fieldValue);
-        } else if (field != null) {
-            String defaultValue = field.getDefaultValue();
-            if (FieldType.BOOLEAN.equals(field.getType())) {
-                return Objects.equals(FieldType.getBooleanValue(defaultValue), FieldType.getBooleanValue(fieldValue));
-            }
-            return Objects.equals(defaultValue, fieldValue);
-        } else {
-            return false;
         }
+        if (field != null) {
+            if (FieldType.BOOLEAN.equals(field.getType())) {
+                boolean booleanFieldValue = FieldType.getBooleanValue(fieldValue);
+                return field.getDefaultValues()
+                        .stream()
+                        .map(ValueDTO::getData)
+                        .map(FieldType::getBooleanValue)
+                        .anyMatch(defaultValue -> defaultValue == booleanFieldValue);
+            } else {
+                return isDefaultValueOrRef(fieldValue, field);
+            }
+        }
+        return false;
+
     }
 
-    public String getDefaultValue(String fieldName) {
+    private boolean isDefaultValueOrRef(String fieldValue, FieldDTO field) {
+        if (isRefType(field.getType())) {
+            for (ValueDTO valueDTO : field.getDefaultValues()) {
+                if (Objects.equals(valueDTO.getRef(), fieldValue)) {
+                    return true;
+                }
+            }
+
+        } else {
+            for (ValueDTO valueDTO : field.getDefaultValues()) {
+                if (Objects.equals(valueDTO.getData(), fieldValue)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
+    public boolean isRefType(String type) {
+        return type.charAt(0) == FieldType.SOFT_REF_DELIMITER || type.charAt(0) == FieldType.REF_DELIMITER;
+    }
+
+    public boolean isKeyField(String name) {
+        return keyFields.contains(name);
+    }
+
+    public List<String> getKeyFields() {
+        return keyFields;
+    }
+
+    public TypeDTO setKeyFields(List<String> keyFields) {
+        this.keyFields = keyFields;
+        return this;
+    }
+
+
+    public ValueDTO getDefaultValue(String fieldName) {
         FieldDTO field = fields.get(fieldName);
-        return field.getDefaultValue();
+        return field.getDefaultValues().stream().findFirst().orElse(null);
     }
 
     public String getName() {
@@ -170,11 +212,11 @@ public class TypeDTO {
         return this;
     }
 
-    public Map<String, String> getComponents() {
+    public Map<String, Object> getComponents() {
         return components;
     }
 
-    public TypeDTO setComponents(Map<String, String> components) {
+    public TypeDTO setComponents(Map<String, Object> components) {
         this.components = components;
         return this;
     }

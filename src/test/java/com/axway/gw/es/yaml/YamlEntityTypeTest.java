@@ -61,10 +61,10 @@ public class YamlEntityTypeTest {
         assertThat(filterCircuit.getSuperType().getSuperType()).isNotNull();
         assertThat(filterCircuit.getSuperType().getSuperType()).isSameAs(entity);
 
+        assertThat(yamlEntityStore.getSubtypes("Foo")).isEmpty();
         assertThat(yamlEntityStore.getSubtypes("Entity")).isNotEmpty();
         assertThat(yamlEntityStore.getSubtypes("RootChild")).contains("FilterCircuit");
         assertThat(yamlEntityStore.hasType("FilterCircuit")).isTrue();
-
 
         final EntityType filterCircuit2 = yamlEntityStore.retrieveType("FilterCircuit");
         assertThat(filterCircuit).isSameAs(filterCircuit2);
@@ -83,12 +83,12 @@ public class YamlEntityTypeTest {
         assertThat(myType).isNotNull();
         assertThat(myType).isSameAs(newType);
 
-        assertThat(myType.getAllDeclaredFieldNames()).hasSize(2);
+        assertThat(myType.getAllDeclaredFieldNames()).hasSize(3);
         assertThat(myType.getKeyFieldNames()).containsExactlyInAnyOrder(EntityType.NAME, "index");
         assertThat(myType.getAllOptionalFieldNames()).containsOnly("description");
         assertThat(myType.getAllConstantFieldNames()).contains("happy");
-        assertThat(myType.getAllFieldNames()).hasSize(6);
-        assertThat(myType.getAllDefaultedFieldNames()).hasSize(4);
+        assertThat(myType.getAllFieldNames()).hasSize(8);
+        assertThat(myType.getAllDefaultedFieldNames()).hasSize(5);
 
         yamlEntityStore.deleteType("MyType");
         assertThat(yamlEntityStore.retrieveType("MyType")).isNull();

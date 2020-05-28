@@ -2,8 +2,8 @@ package com.axway.gw.es.yaml.tools;
 
 import com.axway.gw.es.yaml.YamlEntityExporter;
 import com.axway.gw.es.yaml.YamlEntityTypeImpEx;
-import com.axway.gw.es.yaml.converters.EntityStoreToDTOConverter;
-import com.axway.gw.es.yaml.converters.EntityTypeDTOConverter;
+import com.axway.gw.es.yaml.converters.EntityToDTOConverter;
+import com.axway.gw.es.yaml.converters.EntityTypeToDTOConverter;
 import com.axway.gw.es.yaml.dto.entity.EntityDTO;
 import com.vordel.es.EntityStore;
 import com.vordel.es.EntityStoreFactory;
@@ -26,8 +26,8 @@ public class ConvertToYamlStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvertToYamlStore.class);
 
-    private EntityTypeDTOConverter entityTypeDTOConverter;
-    private EntityStoreToDTOConverter entityStoreToDTOConverter;
+    private EntityTypeToDTOConverter entityTypeDTOConverter;
+    private EntityToDTOConverter entityToDTOConverter;
     private EntityStore inputES;
 
     public ConvertToYamlStore(String url) {
@@ -37,9 +37,9 @@ public class ConvertToYamlStore {
         long end = currentTimeMillis();
         LOGGER.info("Loaded ES in {}ms", (end - start));
 
-        entityTypeDTOConverter = new EntityTypeDTOConverter(inputES);
+        entityTypeDTOConverter = new EntityTypeToDTOConverter(inputES);
         entityTypeDTOConverter.loadTypeAndSubtype();
-        entityStoreToDTOConverter = new EntityStoreToDTOConverter(inputES, entityTypeDTOConverter.getTypes());
+        entityToDTOConverter = new EntityToDTOConverter(inputES, entityTypeDTOConverter.getTypes());
     }
 
     public EntityStore getInputEntityStore() {
@@ -58,7 +58,7 @@ public class ConvertToYamlStore {
         this.delete(yamlDir);
         Thread.sleep(2000);
 
-        final List<EntityDTO> entityDTOList = entityStoreToDTOConverter.mapFromRoot();
+        final List<EntityDTO> entityDTOList = entityToDTOConverter.mapFromRoot();
 
         LOGGER.info("Dumping types to {}", yamlDir);
         new YamlEntityTypeImpEx().writeTypes(new File(yamlDir), entityTypeDTOConverter.getBaseType());

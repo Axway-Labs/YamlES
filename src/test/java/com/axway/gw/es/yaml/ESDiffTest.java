@@ -1,6 +1,8 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.testutils.ESDiff;
+import com.axway.gw.es.yaml.testutils.diff.Diff;
+import com.axway.gw.es.yaml.testutils.diff.DiffType;
+import com.axway.gw.es.yaml.testutils.diff.ESDiff;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -29,7 +31,7 @@ public class ESDiffTest {
 
         createStores("sample1", "sample1");
 
-        final ESDiff diff = ESDiff.diff(source, target, YamlPK::new);
+        final ESDiff diff = ESDiff.diff(source, target);
 
         assertDiffCount(diff, 0);
         assertThat(diff.diffAsJsonString()).isEqualTo("[ ]");
@@ -41,10 +43,10 @@ public class ESDiffTest {
 
         createStores("sample1", "sample2");
 
-        final ESDiff diff = ESDiff.diff(source, target, YamlPK::new);
+        final ESDiff diff = ESDiff.diff(source, target);
 
         assertDiffCount(diff, 5);
-        assertThat(diff.diffList()).extracting(ESDiff.Diff::getDiffType).contains(ESDiff.DiffType.MODIFIED, ESDiff.DiffType.ADDED, ESDiff.DiffType.REMOVED);
+        assertThat(diff.diffList()).extracting(Diff::getDiffType).contains(DiffType.MODIFIED, DiffType.ADDED, DiffType.REMOVED);
 
         // TODO check in depth
 

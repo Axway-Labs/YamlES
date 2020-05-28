@@ -1,6 +1,9 @@
 package com.axway.gw.es.yaml.testutils;
 
 import com.axway.gw.es.yaml.YamlEntityStoreRefsTest;
+import com.axway.gw.es.yaml.testutils.diff.AbstractESDiff;
+import com.axway.gw.es.yaml.testutils.diff.ESDiff;
+import com.vordel.es.impl.AbstractEntity;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,13 +21,13 @@ public class ESTestsUtil {
         return file;
     }
 
-    public static void assertDiffCount(ESDiff diff, int expectedDiffCount) throws IOException {
+    public static void assertDiffCount(AbstractESDiff diff, int expectedDiffCount) throws IOException {
         assertThat(diff.diffCount())
                 .withFailMessage("Should have found " + expectedDiffCount + " diff but found " + diff.diffCount() + " differences:" + diff.diffAsJsonString())
                 .isEqualTo(expectedDiffCount);
     }
 
-    public static void assertDiffCount(ESDiff diff, int expectedDiffCount, String dumpFileNamePrefix) throws IOException {
+    public static void assertDiffCount(AbstractESDiff diff, int expectedDiffCount, String dumpFileNamePrefix) throws IOException {
         final String path = "target/diff-dump-" + dumpFileNamePrefix + ".json";
         try {
             assertThat(diff.diffCount())

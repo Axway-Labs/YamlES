@@ -54,7 +54,7 @@ public class YamlEntityType implements EntityType {
         getAllDeclaredFieldNames().stream()
                 .filter(fieldName -> {
                     FieldType fieldType = fieldTypes.get(fieldName);
-                    return fieldType.getDefaultValues() !=null && !fieldType.getDefaultValues().isEmpty();
+                    return fieldType.getDefaultValues() !=null && !fieldType.getDefaultValues().isEmpty() && containsNonNullValues(fieldType.getDefaultValues());
                 })
                 .forEach(defaultedFields::add);
 
@@ -67,6 +67,10 @@ public class YamlEntityType implements EntityType {
                 })
                 .forEach(optionalFields::add);
 
+    }
+
+    private boolean containsNonNullValues(List<Value> defaultValues) {
+        return defaultValues.stream().anyMatch(v->!v.isNull());
     }
 
 
@@ -390,13 +394,7 @@ public class YamlEntityType implements EntityType {
         return false;
     }
 
-    @Override
-    public void write(OutputStream os) throws IOException {
-        if (cachedDoc == null) {
-            cachedDoc = initCacheDoc();
-        }
-        os.write(cachedDoc);
-    }
+
 
     void setName(String name) {
         this.entityName = name;
@@ -412,6 +410,7 @@ public class YamlEntityType implements EntityType {
     }
 
     void addConstantField(ConstantField constantField) {
+        addFieldType(constantField.getName(), constantField.getType());
         this.constants.put(constantField.getName(), constantField);
     }
 
@@ -423,8 +422,16 @@ public class YamlEntityType implements EntityType {
         this.keyFieldNames.add(keyFieldName);
     }
 
-    void addComponentType(String key, String value) {
+    void addComponentType(String key, Object value) {
         this.componentTypes.put(key, value);
+    }
+
+    @Override
+    public void write(OutputStream os) throws IOException {
+        if (cachedDoc == null) {
+            cachedDoc = initCacheDoc();
+        }
+        os.write(cachedDoc);
     }
 
     private byte[] initCacheDoc() throws IOException {

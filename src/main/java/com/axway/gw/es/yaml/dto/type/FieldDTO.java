@@ -1,36 +1,34 @@
 package com.axway.gw.es.yaml.dto.type;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vordel.es.FieldType;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class FieldDTO {
 
     @JsonIgnore
     private String name;
     private String type;
-    private String defaultValue;
+    private List<ValueDTO> defaultValues;
     private Object cardinality;
-    @JsonProperty("isKey")
-    private boolean keyField;
 
     public FieldDTO() {
         // for parsers
+        defaultValues = new ArrayList<>();
     }
 
     public FieldDTO(String name, FieldType fieldType) {
         this.name = name;
-        String fieldTypeName = fieldType.getType();
-        if (fieldType.isSoftRefType())
-            fieldTypeName = fieldTypeName.replace(FieldType.SOFT_REF_DELIMITER, FieldType.REF_DELIMITER);  // Soft does not make sens in yaml es, so we convert in hard ref (@)
-        this.type = fieldTypeName;
+        this.type = fieldType.getType();
         this.cardinality = fieldType.getCardinality();
-        this.defaultValue = fieldType.getDefault();
-        if (FieldType.BOOLEAN.equals(fieldTypeName) && fieldType.getDefault() != null) {
-			defaultValue = String.valueOf(FieldType.getBooleanValue(defaultValue));
-        }
+        this.defaultValues = fieldType.getDefaultValues()
+                .stream()
+                .map(ValueDTO::new)
+                .collect(Collectors.toList());
     }
 
     public String getName() {
@@ -51,12 +49,12 @@ public class FieldDTO {
         return this;
     }
 
-    public String getDefaultValue() {
-        return defaultValue;
+    public List<ValueDTO> getDefaultValues() {
+        return defaultValues;
     }
 
-    public FieldDTO setDefaultValue(String defaultValue) {
-        this.defaultValue = defaultValue;
+    public FieldDTO setDefaultValue(List<ValueDTO> defaultValues) {
+        this.defaultValues = defaultValues;
         return this;
     }
 
@@ -69,30 +67,21 @@ public class FieldDTO {
         return this;
     }
 
-    public boolean isKeyField() {
-        return keyField;
-    }
-
-    public FieldDTO setKeyField(boolean isKeyFields) {
-        keyField = isKeyFields;
-        return this;
-    }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FieldDTO fieldDTO = (FieldDTO) o;
-        return keyField == fieldDTO.keyField &&
-                Objects.equals(name, fieldDTO.name) &&
+        return  Objects.equals(name, fieldDTO.name) &&
                 Objects.equals(type, fieldDTO.type) &&
-                Objects.equals(defaultValue, fieldDTO.defaultValue) &&
+                Objects.equals(defaultValues, fieldDTO.defaultValues) &&
                 Objects.equals(cardinality, fieldDTO.cardinality);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, type, defaultValue, cardinality, keyField);
+        return Objects.hash(name, type, defaultValues, cardinality);
     }
 
     @Override
@@ -100,9 +89,8 @@ public class FieldDTO {
         return "FieldDTO{" +
                 "name='" + name + '\'' +
                 ", type='" + type + '\'' +
-                ", defaultValue='" + defaultValue + '\'' +
-                ", cardinality='" + cardinality + '\'' +
-                ", keyField=" + keyField +
+                ", defaultValues='" + defaultValues + '\'' +
+                ", cardinality='" + cardinality +
                 '}';
     }
 }
