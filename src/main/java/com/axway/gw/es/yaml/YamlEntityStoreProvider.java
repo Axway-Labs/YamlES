@@ -13,7 +13,7 @@ public class YamlEntityStoreProvider extends EntityStoreProvider  {
 	@Override
 	@Nullable
 	public EntityStore createStoreForURL(String url) {
-		if (url.startsWith("yaml:"))  
+		if (url.startsWith(YamlEntityStore.SCHEME))
 			return new YamlEntityStore();           
 		return null;
 	}
@@ -21,7 +21,7 @@ public class YamlEntityStoreProvider extends EntityStoreProvider  {
 	@Override
 	@Nullable
 	public Collection<String> getConnectionCredentialsForURL(String url) {
-		if (url.startsWith("yaml:"))               
+		if (url.startsWith(YamlEntityStore.SCHEME))
 			return new ArrayList<>();
 		return null;
 	}

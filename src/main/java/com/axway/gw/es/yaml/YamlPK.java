@@ -9,17 +9,18 @@ import java.util.Objects;
  */
 public class YamlPK implements com.vordel.es.ESPK {
 
+    public static final char CHILD_SEPARATOR = '/';
     private final String location;
 
     public YamlPK(String location) {
         this.location = location;
     }
 
-    public YamlPK(ESPK parent, String name) {
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("Invalid key " + parent + " " + name);
+    public YamlPK(ESPK parent, String path) {
+        if (path == null || path.isEmpty()) {
+            throw new IllegalArgumentException("Invalid key parent=" + parent + " path=" + path);
         }
-        this.location = parent.toString() + "/" + name;
+        this.location = parent.toString() + CHILD_SEPARATOR + path;
     }
 
     @Override

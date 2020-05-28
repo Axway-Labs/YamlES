@@ -94,7 +94,16 @@
 		</plugins>
 	</build>
 	<dependencies>
-
+		<dependency>
+			<groupId>com.axway.apigw.es</groupId>
+			<artifactId>es-core</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.axway.apigw</groupId>
+			<artifactId>apigw-common</artifactId>
+			<version>${apigateway.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
@@ -158,6 +167,7 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.6</version>
 		</dependency>
+		<!-- tests -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
@@ -165,15 +175,24 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.axway.apigw.es</groupId>
-			<artifactId>es-core</artifactId>
-			<version>${apigateway.version}</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<version>5.6.2</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.axway.apigw</groupId>
-			<artifactId>apigw-common</artifactId>
-			<version>${apigateway.version}</version>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.13.2</version>
+			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.flipkart.zjsonpatch</groupId>
+			<artifactId>zjsonpatch</artifactId>
+			<version>0.4.8</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>
 

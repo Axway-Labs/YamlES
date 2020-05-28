@@ -1,0 +1,7 @@
+---
+meta:
+  type: "Root"
+fields:
+  tagValue: "ref-test"
+  name: "Test Components"
+  tagName: "test"

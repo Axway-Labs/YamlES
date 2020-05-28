@@ -1,16 +1,18 @@
 package com.axway.gw.es.yaml;
 
-import com.axway.gw.es.yaml.model.entity.EntityDTO;
-import com.axway.gw.es.yaml.model.type.TypeDTO;
+import com.axway.gw.es.yaml.dto.entity.EntityDTO;
+import com.axway.gw.es.yaml.dto.type.TypeDTO;
 import com.axway.gw.es.yaml.util.IndexedEntityTreeDelegate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.vordel.es.*;
 import com.vordel.es.impl.AbstractTypeStore;
 import com.vordel.es.impl.EntityTypeMap;
 import com.vordel.es.provider.file.IndexedEntityTree;
 import com.vordel.es.util.ESPKCollection;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +22,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.nio.file.Files;
+import java.util.*;
 
-import static com.axway.gw.es.yaml.tools.EntityManager.METADATA_FILENAME;
-import static com.axway.gw.es.yaml.tools.EntityManager.YAML_EXTENSION;
-import static com.axway.gw.es.yaml.tools.TypeManager.TYPES_FILE;
+import static com.axway.gw.es.yaml.YamlEntityExporter.METADATA_FILENAME;
+import static com.axway.gw.es.yaml.YamlEntityExporter.YAML_EXTENSION;
+import static com.axway.gw.es.yaml.YamlEntityTypeImpEx.TYPES_DIR;
+import static com.axway.gw.es.yaml.converters.EntityStoreESPKMapper.KEY_MAPPING_FILENAME;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.currentTimeMillis;
 
 @SuppressWarnings("WeakerAccess")
 public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
@@ -36,17 +39,31 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
     public static final String SCHEME = "yaml:";
     public static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
+    private static final Set<String> NON_ENTITY_FILES = new HashSet<>();
+
     static {
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        ((YAMLFactory) YAML_MAPPER.getFactory()).configure(YAMLGenerator.Feature.SPLIT_LINES, false);
+
+        NON_ENTITY_FILES.add(TYPES_DIR);
+        NON_ENTITY_FILES.add(METADATA_FILENAME);
+        NON_ENTITY_FILES.add(KEY_MAPPING_FILENAME);
+
     }
 
     private File rootLocation;
-    private ESPK root;
-    private final Map<String, TypeDTO> types = new LinkedHashMap<>();
+    private YamlPK root;
     private final IndexedEntityTreeDelegate entities = new IndexedEntityTreeDelegate(new IndexedEntityTree());
     private final EntityTypeMap typeMap = new EntityTypeMap();
+    private final YamlPkBuilder yamlPkBuilder;
+    private final YamlEntityTypeImpEx yamlEntityTypeImpEx;
+
+
+    public YamlEntityStore() {
+        yamlPkBuilder = new YamlPkBuilder(this);
+        yamlEntityTypeImpEx = new YamlEntityTypeImpEx();
+    }
 
     /**
      * Connect to an entity store.
@@ -74,8 +91,11 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
             throw new EntityStoreException("Unable to parse URL", e);
         }
         try {
+            long start = currentTimeMillis();
             loadTypes();
             loadEntities();
+            long end = currentTimeMillis();
+            LOG.info("Loaded ES with {} types and {} entities in {}ms", typeMap.getTypeCount(), entities.size(), (end - start));
         } catch (IOException e) {
             throw new EntityStoreException("Error opening yaml store", e);
         }
@@ -85,18 +105,41 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         this.rootLocation = rootLocation;
     }
 
-    public void loadEntities() {
+    void setRootManually(YamlPK rootPk) {
+        root = rootPk;
+    }
+
+    void loadTypes() throws IOException {
+        if (rootLocation == null)
+            throw new EntityStoreException("root directory not set");
+        TypeDTO typeDTO = yamlEntityTypeImpEx.readTypes(rootLocation);
+        // for the moment load everything into memory rather than on demand
+        loadType(typeDTO, null);
+    }
+
+    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
+        YamlEntityType type = YamlEntityTypeConverter.convert(typeDTO);
+        type.setSuperType(parent);
+        addType(type);
+        for (TypeDTO yChild : typeDTO.getChildren()) {
+            loadType(yChild, type);
+        }
+        return type;
+    }
+
+
+    void loadEntities() {
         if (rootLocation == null)
             throw new EntityStoreException("root directory not set");
         // for the moment load everything into memory rather than ondemmand
         try {
-            root = loadEntities(rootLocation, root);
+            loadEntities(rootLocation, root);
         } catch (IOException e) {
-            throw new EntityStoreException(e.getMessage());
+            throw new EntityStoreException("Could not load YAML Entity Store", e);
         }
     }
 
-    public ESPK loadEntities(File dir, ESPK parentPK) throws IOException {
+    private void loadEntities(File dir, YamlPK parentPK) throws IOException {
         if (dir == null)
             throw new EntityStoreException("no directory to load entities from");
 
@@ -105,78 +148,146 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
         // create the parent entity using metadata.yaml
         Entity entity = createParentEntity(dir, parentPK);
         if (entity != null) {
-            parentPK = entity.getPK();
+            parentPK = (YamlPK) entity.getPK();
+            // sets the root right away so it can be used to set properly all ESPKs
+            if (root == null) {
+                root = parentPK;
+            }
         }
 
         if (dir.toString().contains("Certificate Store")) {
             LOG.warn("Certificate Store is not handled");
         }
 
-        final File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.toString().endsWith(METADATA_FILENAME) || file.toString().endsWith("META-INF")) {
-                    // skip over metadata.yaml
-                    continue;
-                }
+
+        for (File file : listFiles(dir)) {
+            if (!NON_ENTITY_FILES.contains(file.getName())) {
                 if (file.isDirectory()) {
                     loadEntities(file, parentPK);
                 } else if (file.toString().endsWith(YAML_EXTENSION)) {
-                    createEntity(file, parentPK);
+                    readEntityFromYamlFile(file, parentPK);
                 }
             }
         }
-
-        return parentPK;
     }
 
-    Entity createEntity(File file, ESPK parentPK) throws IOException {
-        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
-        File dir = file.getParentFile();
-
-        Entity entity = createEntity(entityDTO, parentPK, dir);
-
-        if (entityDTO.getChildren() != null) {
-            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
-                createEntity(entry.getValue(), entity.getPK(), dir);
-            }
+    private List<File> listFiles(File dir) {
+        final File[] files = dir.listFiles();
+        if (files != null) {
+            return Arrays.asList(files);
+        } else {
+            return Collections.emptyList();
         }
-        return entity;
     }
 
-    private Entity createEntity(EntityDTO entityDTO, ESPK parentPK, File dir) throws IOException {
-        entityDTO.getMeta().setTypeDTO(types.get(entityDTO.getMeta().getType()));
-        Entity entity = EntityFactory.convert(entityDTO, parentPK, this, dir);
-        entities.add(parentPK, entity);
-        return entity;
-    }
 
-    private Entity createParentEntity(File dir, ESPK parentPK) throws IOException {
+    private YamlEntity createParentEntity(File dir, YamlPK parentPK) throws IOException {
         File metadata = new File(dir, METADATA_FILENAME);
         if (metadata.exists()) {
-            return createEntity(metadata, parentPK);
+            LOG.info("Read parent entity {}", metadata);
+            return readEntityFromYamlFile(metadata, parentPK);
         }
         return null;
     }
 
-    public void loadTypes() throws IOException {
-        if (rootLocation == null)
-            throw new EntityStoreException("root directory not set");
-        TypeDTO typeDTO = YAML_MAPPER.readValue(new File(rootLocation, "META-INF/" + TYPES_FILE), TypeDTO.class);
-        // for the moment load everything into memory rather than ondemmand
-        loadType(typeDTO, null);
+    YamlEntity readEntityFromYamlFile(File file, YamlPK parentPK) throws IOException {
+        EntityDTO entityDTO = YAML_MAPPER.readValue(file, EntityDTO.class);
+
+        YamlEntity entity = convertDTOIntoEntity(entityDTO, parentPK, file, false);
+
+        if (entityDTO.getChildren() != null) {
+            for (Map.Entry<String, EntityDTO> entry : entityDTO.getChildren().entrySet()) {
+                convertDTOIntoEntity(entry.getValue(), (YamlPK) entity.getPK(), file, true);
+            }
+        }
+        return entity;
     }
 
-    private YamlEntityType loadType(TypeDTO typeDTO, YamlEntityType parent) {
-        types.put(typeDTO.getName(), typeDTO);
-        YamlEntityType type = YamlEntityType.convert(typeDTO);
-        type.setSuperType(parent);
-        addType(type);
-        for (TypeDTO yChild : typeDTO.getChildren()) {
-            loadType(yChild, type);
+    private YamlEntity convertDTOIntoEntity(EntityDTO entityDTO, YamlPK parentPK, File file, boolean isEmbeddedChild) throws
+            IOException {
+
+        File dir = file.getParentFile();
+
+        EntityType type = this.getTypeForName(entityDTO.getMeta().getType());
+        checkNotNull(type);
+
+        YamlEntity entity = new YamlEntity(type);
+
+        Map<String, String> allFields = entityDTO.retrieveAllFields();
+
+        // fields
+        for (Map.Entry<String, String> fieldEntry : allFields.entrySet()) {
+
+            String rawFieldName = fieldEntry.getKey();
+            String fieldValue = fieldEntry.getValue();
+            String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+
+            if (type.isConstantField(fieldName)) {
+                continue; // don't set constants
+            }
+
+            FieldType fieldType = type.getFieldType(fieldName);
+            if (!fieldType.isRefType() && !fieldType.isSoftRefType()) {
+                String content = fieldValue;
+                if (rawFieldName.contains("#ref")) {
+                    content = readFieldValueFromFile(dir, fieldValue, rawFieldName.endsWith("#refbase64"));
+                }
+                entity.setField(fieldName, new Value[]{new Value(content)});
+            }
         }
-        return type;
+
+        // pk
+        entity.setParentPK(parentPK);
+        YamlPK pk = computeYamlPK(entity, parentPK);
+        entity.setPK(pk);
+
+        // set references fields
+        for (Map.Entry<String, String> fieldEntry : allFields.entrySet()) {
+            String rawFieldName = fieldEntry.getKey();
+            String fieldName = StringUtils.substringBefore(rawFieldName, "#");
+            FieldType fieldType = type.getFieldType(fieldName);
+            if (!type.isConstantField(fieldName) &&
+                    (fieldType.isRefType() ||
+                            fieldType.isSoftRefType())) {
+                setReference(entity, fieldEntry.getValue(), fieldName, isEmbeddedChild);
+            }
+        }
+
+        entities.add(parentPK, entity);
+        return entity;
     }
+
+    private YamlPK computeYamlPK(Entity entity, ESPK parentPK) {
+        String location;
+        if (parentPK == null) {
+            // root pk
+            location = yamlPkBuilder.getKeyValues(entity);
+        } else {
+            location = yamlPkBuilder.buildKeyValue(entity);
+        }
+        return new YamlPK(location);
+    }
+
+    private void setReference(YamlEntity entity, String ref, String fieldName, boolean isEmbeddedChild) {
+        // if relative ref => make it absolute (works with child and siblings refs)
+        if (!yamlPkBuilder.isAbsoluteRef(ref))
+            entity.setReferenceField(fieldName, new YamlPK(isEmbeddedChild ? entity.getParentPK() : entity.getPK(), ref));
+        else
+            entity.setReferenceField(fieldName, new YamlPK(ref));
+    }
+
+    private String readFieldValueFromFile(File dir, String fileName, boolean isBase64) throws IOException {
+
+        byte[] data = Files.readAllBytes(dir.toPath().resolve(fileName));
+        if (isBase64) {
+            fileName = Base64.getEncoder().encodeToString(data);
+        } else {
+            fileName = new String(data);
+        }
+
+        return fileName;
+    }
+
 
     /**
      * Get the identifier for the root Entity in the Store. Always returns
@@ -433,7 +544,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
      */
     @Override
     public ESPK decodePK(String stringifiedPK) {
-        throw new UnsupportedOperationException();
+        return new YamlPK(stringifiedPK);
     }
 
     @Override
@@ -443,6 +554,7 @@ public class YamlEntityStore extends AbstractTypeStore implements EntityStore {
 
     @Override
     protected void persistType(EntityType type) {
+        ((YamlEntityType) type).processOptionalAndDefaultedFields();
         typeMap.addType(type);
     }
 

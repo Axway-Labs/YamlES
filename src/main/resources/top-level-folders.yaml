@@ -1,0 +1,74 @@
+# this file contains how to group entities (direct under Root children) given their types.
+---
+defaultFolder : System
+folders:
+  - name: Policies
+    types:
+      - FilterCircuit
+      - CircuitContainer
+  - name: APIs
+    types:
+      - WebServiceGroup
+      - WebServiceRepository
+  - name: Resources
+    types:
+      - JSONSchemaGroup
+      - ScriptGroup
+      - StylesheetGroup
+      - XmlSchemaGroup
+      - XPathGroup
+      - ResourceRepository
+  - name: Environment Configuration
+    types:
+      - KPSRoot
+      - EnvironmentalizedEntities
+      - Certificates
+      - PGPKeyPairs
+      - NetService
+      - UserStore
+  - name: Libraries
+    types:
+      - CacheManager
+      - AlertManager
+      - RegularExpressionGroup
+      - OAuth2StoresGroup
+      - CronExpressionGroup
+      - CORSGroup
+      - WAFProfileGroup
+  - name: Server Settings
+    types:
+      - AccessLogger
+      - CassandraSettings
+      - EventLog
+      - LogManager
+      - RealtimeMonitoring
+      - PortalCallbackGroup
+      - MimeTypeGroup
+      - OPDbConfig
+      - SystemSettings
+      - OpenTrafficEventLog
+      - PortalConfiguration
+      - ZeroDowntime
+  - name: External Connections
+    types:
+        - AWSSettings
+        - AuthnRepositoryGroup
+        - ConnectionSetGroup
+        - AuthProfilesGroup
+        - DbConnectionGroup
+        - ICAPServerGroup
+        - JMSServiceGroup
+        - LdapDirectoryGroup
+        - ProxyServerGroup
+        - SentinelServerGroup
+        - SiteMinderConnectionSet
+        - SMTPServerGroup
+        - SyslogServerGroup
+        - RendezvousDaemonGroup
+        - UrlSetGroup
+        - XkmsConfigGroup
+        - RadiusClients
+        - SunAccessManagerSettings
+        - PassPortKeyStoreManager
+        - TivoliActionGroupGroup
+        - TivoliSettingsGroup
